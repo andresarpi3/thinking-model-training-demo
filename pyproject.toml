@@ -6,9 +6,12 @@ readme = "README.md"
 requires-python = ">=3.11.11"
 dependencies = [
     "unsloth==2025.8.6",
-    "vllm==0.10.0", 
+    "vllm==0.10.0",
     "trl==0.21.0",
     "peft==0.17.0",
+    "jupyterlab>=4.4.6",
+    "ipywidgets>=8.1.7",
+    "flashinfer-python>=0.2.12",
 ]
 
 [[tool.uv.index]]

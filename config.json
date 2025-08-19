@@ -1,0 +1,48 @@
+{
+  "model": {
+    "name": "unsloth/Qwen2.5-1.5B",
+    "max_seq_length": 2048,
+    "lora_rank": 8,
+    "load_in_4bit": false
+  },
+  "training": {
+    "sft": {
+      "full_samples": 1024,
+      "rl_prep_samples": 256,
+      "learning_rate": 2e-4,
+      "batch_size": 4,
+      "gradient_accumulation_steps": 4,
+      "num_epochs": 1
+    },
+    "grpo": {
+      "learning_rate": 5e-6,
+      "batch_size": 2,
+      "max_steps": 200,
+      "num_generations": 2,
+      "weight_decay": 0.01,
+      "warmup_ratio": 0.1
+    }
+  },
+  "evaluation": {
+    "num_samples": 512,
+    "batch_size": 32,
+    "temperature": 0.7,
+    "top_k": 50,
+    "max_tokens": 512
+  },
+  "prompts": {
+    "system_prompt": "You are given a problem.\nThink about the problem and provide your working out.\nPlace it between <start_working_out> and <end_working_out>.\nThen, provide your solution between <SOLUTION></SOLUTION>",
+    "reasoning_start": "<start_working_out>",
+    "reasoning_end": "<end_working_out>",
+    "solution_start": "<SOLUTION>",
+    "solution_end": "</SOLUTION>"
+  },
+  "outputs": {
+    "base_dir": "outputs",
+    "models_dir": "outputs/models",
+    "debug_dir": "outputs/debug",
+    "sft_model": "outputs/models/sft_model",
+    "rl_sft_model": "outputs/models/rl_sft_model", 
+    "grpo_model": "outputs/models/grpo_model"
+  }
+}

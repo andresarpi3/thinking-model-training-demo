@@ -9,3 +9,6 @@ unsloth_compiled_cache/*
 
 # Virtual environments
 .venv
+grpo_model/*
+.ipynb_checkpoints/
+outputs/*

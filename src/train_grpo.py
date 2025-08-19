@@ -1,0 +1,120 @@
+#!/usr/bin/env python
+"""Train model using GRPO (Group Relative Policy Optimization)."""
+
+import argparse
+import json
+import os
+import numpy as np
+from trl import GRPOConfig, GRPOTrainer
+from vllm import SamplingParams
+
+from model_utils import load_model
+from dataset_utils import load_gsm8k_datasets, prepare_grpo_dataset
+from reward_functions import create_reward_functions
+
+
+def train_grpo_model(model, tokenizer, train_dataset, config, base_model_path, output_dir):
+    """Train model using GRPO"""
+    print("Starting GRPO training...")
+    
+    # Load the base model (SFT model)
+    print(f"Loading base model from {base_model_path}")
+    base_lora_adapter = model.load_lora(base_model_path)
+    
+    grpo_config = config["training"]["grpo"]
+    model_config = config["model"]
+    
+    # Calculate max prompt length
+    tokenized = train_dataset.map(
+        lambda x: {"tokens": tokenizer.apply_chat_template(x["prompt"], add_generation_prompt=True, tokenize=True)},
+        batched=True,
+    )
+    max_prompt_length = int(np.quantile([len(tokens) for tokens in tokenized["tokens"]], 0.9)) + 1
+    max_completion_length = model_config["max_seq_length"] - max_prompt_length
+
+    print(f"Max prompt length: {max_prompt_length}")
+    print(f"Max completion length: {max_completion_length}")
+
+    vllm_sampling_params = SamplingParams(
+        min_p=0.1,
+        top_p=1.0,
+        top_k=-1,
+        seed=3407,
+        stop=[tokenizer.eos_token],
+        include_stop_str_in_output=True,
+    )
+
+    training_args = GRPOConfig(
+        vllm_sampling_params=vllm_sampling_params,
+        temperature=1.0,
+        learning_rate=grpo_config["learning_rate"],
+        weight_decay=grpo_config["weight_decay"],
+        warmup_ratio=grpo_config["warmup_ratio"],
+        lr_scheduler_type="linear",
+        optim="adamw_8bit",
+        logging_steps=5,
+        per_device_train_batch_size=grpo_config["batch_size"],
+        gradient_accumulation_steps=2,
+        num_generations=grpo_config["num_generations"],
+        max_prompt_length=max_prompt_length,
+        max_completion_length=max_completion_length,
+        max_steps=grpo_config["max_steps"],
+        save_steps=100,
+        report_to="none",
+        output_dir=output_dir,
+    )
+
+    # Create reward functions
+    reward_funcs = create_reward_functions(config)
+
+    trainer = GRPOTrainer(
+        model=model,
+        processing_class=tokenizer,
+        reward_funcs=reward_funcs,
+        args=training_args,
+        train_dataset=train_dataset,
+    )
+
+    trainer.train()
+    trainer.save_model(output_dir)
+    print(f"GRPO model saved to {output_dir}")
+
+    return model
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Train GRPO model")
+    parser.add_argument("--config", type=str, required=True, help="Path to config file")
+    parser.add_argument("--base-model", type=str, required=True, help="Path to base SFT model")
+    
+    args = parser.parse_args()
+    
+    # Load config
+    with open(args.config, 'r') as f:
+        config = json.load(f)
+    
+    # Create output directories
+    os.makedirs(config["outputs"]["models_dir"], exist_ok=True)
+    
+    output_dir = config["outputs"]["grpo_model"]
+    n_samples = config["training"]["sft"]["rl_prep_samples"]
+    
+    print(f"Training GRPO model with {n_samples} samples")
+    print(f"Base model: {args.base_model}")
+    
+    # Load model and datasets
+    model, tokenizer = load_model(config)
+    gsm8k_train, _ = load_gsm8k_datasets()
+    
+    # Prepare GRPO dataset
+    grpo_dataset = prepare_grpo_dataset(gsm8k_train, n_samples, config)
+    print(f"GRPO dataset size: {len(grpo_dataset)}")
+    
+    # Train model
+    trained_model = train_grpo_model(model, tokenizer, grpo_dataset, config, args.base_model, output_dir)
+    
+    print(f"GRPO training complete! Model saved to {output_dir}")
+
+
+if __name__ == "__main__":
+    main()
