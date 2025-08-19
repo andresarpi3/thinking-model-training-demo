@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Train model using supervised fine-tuning (SFT)."""
 
+import unsloth
 import argparse
 import json
 import os
@@ -18,7 +19,7 @@ def train_sft_model(model, tokenizer, train_dataset, config, output_dir):
     
     trainer = SFTTrainer(
         model=model,
-        tokenizer=tokenizer,
+        tokenizer=tokenizer, # type: ignore
         train_dataset=train_dataset,
         args=SFTConfig(
             dataset_text_field="text",

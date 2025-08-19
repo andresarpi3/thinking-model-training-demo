@@ -24,6 +24,18 @@ This project implements a complete training pipeline for GSM8K mathematical reas
         └── *.csv           # Evaluation CSV files
 ```
 
+## Command Line Arguments
+
+The scripts use minimal command line arguments, with most configuration handled via `config.json`:
+
+- `--config`: Path to configuration file (required for all scripts)
+- `--model-path`: Model name from config (e.g., `sft_model`, `grpo_model`) or None for base model (evaluate_model.py)
+- `--base-model`: Base model name from config for GRPO training (train_grpo.py)
+- `--stage`: Training stage - `full` or `rl_prep` (train_sft.py)
+- `--output-file`: Output CSV filename for evaluation results
+
+Model paths are automatically resolved from the config file, so you reference models by name rather than full paths.
+
 ## Configuration
 
 Edit `config.json` to adjust:
@@ -47,7 +59,7 @@ uv run src/train_sft.py --config config.json --stage full
 
 ### Step 3: Evaluate SFT Model
 ```bash
-uv run src/evaluate_model.py --config config.json --model-path outputs/models/sft_model --output-file sft_model_eval.csv
+uv run src/evaluate_model.py --config config.json --model-path sft_model --output-file sft_model_eval.csv
 ```
 
 ### Step 4: Train RL Preparation Model (SFT with fewer samples)
@@ -57,17 +69,17 @@ uv run src/train_sft.py --config config.json --stage rl_prep
 
 ### Step 5: Evaluate RL-SFT Model
 ```bash
-uv run src/evaluate_model.py --config config.json --model-path outputs/models/rl_sft_model --output-file rl_sft_eval.csv
+uv run src/evaluate_model.py --config config.json --model-path rl_sft_model --output-file rl_sft_eval.csv
 ```
 
 ### Step 6: Train GRPO Model
 ```bash
-uv run src/train_grpo.py --config config.json --base-model outputs/models/rl_sft_model
+uv run src/train_grpo.py --config config.json --base-model rl_sft_model
 ```
 
 ### Step 7: Evaluate GRPO Model
 ```bash
-uv run src/evaluate_model.py --config config.json --model-path outputs/models/grpo_model --output-file grpo_model_eval.csv
+uv run src/evaluate_model.py --config config.json --model-path grpo_model --output-file grpo_model_eval.csv
 ```
 
 ## Output Format

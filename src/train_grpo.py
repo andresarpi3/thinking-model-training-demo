@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Train model using GRPO (Group Relative Policy Optimization)."""
 
+import unsloth
 import argparse
 import json
 import os
@@ -45,7 +46,7 @@ def train_grpo_model(model, tokenizer, train_dataset, config, base_model_path, o
     )
 
     training_args = GRPOConfig(
-        vllm_sampling_params=vllm_sampling_params,
+        vllm_sampling_params=vllm_sampling_params, # type: ignore
         temperature=1.0,
         learning_rate=grpo_config["learning_rate"],
         weight_decay=grpo_config["weight_decay"],
@@ -85,7 +86,7 @@ def train_grpo_model(model, tokenizer, train_dataset, config, base_model_path, o
 def main():
     parser = argparse.ArgumentParser(description="Train GRPO model")
     parser.add_argument("--config", type=str, required=True, help="Path to config file")
-    parser.add_argument("--base-model", type=str, required=True, help="Path to base SFT model")
+    parser.add_argument("--base-model", type=str, required=True, help="Base model name (e.g., 'rl_sft_model')")
     
     args = parser.parse_args()
     
@@ -96,11 +97,14 @@ def main():
     # Create output directories
     os.makedirs(config["outputs"]["models_dir"], exist_ok=True)
     
+    # Resolve base model path from config
+    base_model_path = config["outputs"][args.base_model]
+    
     output_dir = config["outputs"]["grpo_model"]
     n_samples = config["training"]["sft"]["rl_prep_samples"]
     
     print(f"Training GRPO model with {n_samples} samples")
-    print(f"Base model: {args.base_model}")
+    print(f"Base model: {args.base_model} -> {base_model_path}")
     
     # Load model and datasets
     model, tokenizer = load_model(config)
@@ -111,7 +115,7 @@ def main():
     print(f"GRPO dataset size: {len(grpo_dataset)}")
     
     # Train model
-    trained_model = train_grpo_model(model, tokenizer, grpo_dataset, config, args.base_model, output_dir)
+    trained_model = train_grpo_model(model, tokenizer, grpo_dataset, config, base_model_path, output_dir)
     
     print(f"GRPO training complete! Model saved to {output_dir}")
 

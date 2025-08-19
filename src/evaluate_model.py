@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Evaluate model on GSM8K test set."""
 
-import unsloth 
+import unsloth
 import argparse
 import json
 import os
@@ -148,7 +148,7 @@ def evaluate_model(model, tokenizer, dataset, config, model_path=None):
 def main():
     parser = argparse.ArgumentParser(description="Evaluate model on GSM8K")
     parser.add_argument("--config", type=str, required=True, help="Path to config file")
-    parser.add_argument("--model-path", type=str, help="Path to trained model")
+    parser.add_argument("--model-path", type=str, help="Model name (e.g., 'sft_model', 'grpo_model') or None for base model")
     parser.add_argument("--output-file", type=str, required=True, help="Output CSV file")
     
     args = parser.parse_args()
@@ -160,13 +160,21 @@ def main():
     # Create output directories
     os.makedirs(config["outputs"]["debug_dir"], exist_ok=True)
     
+    # Resolve model path from config
+    model_path = None
+    if args.model_path:
+        model_path = config["outputs"][args.model_path]
+        print(f"Using model: {args.model_path} -> {model_path}")
+    else:
+        print("Evaluating base model")
+    
     # Load model and datasets
     model, tokenizer = load_model(config)
     _, gsm8k_test = load_gsm8k_datasets()
     
     # Evaluate model
     results, accuracy, thinking_prop, answer_prop = evaluate_model(
-        model, tokenizer, gsm8k_test, config, args.model_path
+        model, tokenizer, gsm8k_test, config, model_path
     )
     
     # Save results
