@@ -5,34 +5,45 @@ from unsloth import FastLanguageModel
 import torch
 from tr_config import config
 
+    
 
-def load_model():
-    """Load and prepare model for training/inference"""
+
+def load_model(lora_path: str | None):
+
     model_config = config.model
     prompts = config.prompts
     
     print(f"Loading model: {model_config.name}")
 
-    model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name=model_config.name,
-        max_seq_length=model_config.max_seq_length,
-        load_in_4bit=model_config.load_in_4bit,
-        fast_inference=True,
-        max_lora_rank=model_config.lora_rank,
-        gpu_memory_utilization=0.7,
-    )
+    if not lora_path:
+        model, tokenizer = FastLanguageModel.from_pretrained(
+            model_name=model_config.name,
+            max_seq_length=model_config.max_seq_length,
+            load_in_4bit=model_config.load_in_4bit,
+            fast_inference=True,
+            max_lora_rank=model_config.lora_rank,
+            gpu_memory_utilization=0.7,
+        )
 
-    model = FastLanguageModel.get_peft_model(
-        model,
-        r=model_config.lora_rank,
-        target_modules=[
-            "q_proj", "k_proj", "v_proj", "o_proj",
-            "gate_proj", "up_proj", "down_proj",
-        ],
-        lora_alpha=model_config.lora_rank * 2,
-        use_gradient_checkpointing="unsloth",
-        random_state=3407,
-    )
+        model = FastLanguageModel.get_peft_model(
+            model,
+            r=model_config.lora_rank,
+            target_modules=[
+                "q_proj", "k_proj", "v_proj", "o_proj",
+                "gate_proj", "up_proj", "down_proj",
+            ],
+            lora_alpha=model_config.lora_rank * 2,
+            use_gradient_checkpointing="unsloth",
+            random_state=3407,
+        )
+    else:
+        model, tokenizer = FastLanguageModel.from_pretrained(
+            model_name=lora_path,
+            max_seq_length=model_config.max_seq_length,
+            load_in_4bit=model_config.load_in_4bit,
+            fast_inference=True,
+        )
+
 
     # Set up chat template
     system_prompt = prompts.system_prompt

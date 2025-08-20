@@ -12,7 +12,7 @@ from model_utils import load_model
 from dataset_utils import load_gsm8k_datasets, extract_hash_answer, extract_thinking, extract_solution
 
 
-def evaluate_model(model, tokenizer, dataset, model_path=None):
+def evaluate_model(model, tokenizer, lora_adapter, dataset):
     """Evaluate model on GSM8K test set using fast_generate with batching"""
     eval_config = config.evaluation
     prompts = config.prompts
@@ -28,11 +28,7 @@ def evaluate_model(model, tokenizer, dataset, model_path=None):
     
     print(f"Evaluating model on {eval_n} examples with batch size {batch_size}...")
 
-    # Load LoRA adapter if model_path is provided
-    lora_adapter = None
-    if model_path:
-        print(f"Loading LoRA adapter from {model_path}")
-        lora_adapter = model.load_lora(model_path)
+    # LoRA adapter is loaded in load_model() if model_path was provided
 
     # Take subset for evaluation
     eval_dataset = dataset.select(range(min(eval_n, len(dataset))))
@@ -173,12 +169,13 @@ def main():
         print("Evaluating base model")
     
     # Load model and datasets
-    model, tokenizer = load_model()
+    model, tokenizer = load_model(model_path)
+    lora_adapter = model.load_lora(model_path) if model_path else None
     _, gsm8k_test = load_gsm8k_datasets()
     
     # Evaluate model
     results, accuracy, thinking_prop, answer_prop = evaluate_model(
-        model, tokenizer, gsm8k_test, model_path
+        model, tokenizer, lora_adapter, gsm8k_test
     )
     
     # Save results

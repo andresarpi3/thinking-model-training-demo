@@ -71,7 +71,7 @@ def main():
     print(f"Training {args.stage} SFT model with {n_samples} samples")
     
     # Load model and datasets
-    model, tokenizer = load_model()
+    model, tokenizer = load_model(lora_path=None)  # No LoRA needed for SFT training
     gsm8k_train, _ = load_gsm8k_datasets()
     
     # Prepare SFT dataset

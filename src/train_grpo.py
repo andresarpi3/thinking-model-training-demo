@@ -14,13 +14,11 @@ from dataset_utils import load_gsm8k_datasets, prepare_grpo_dataset
 from reward_functions import create_reward_functions
 
 
-def train_grpo_model(model, tokenizer, train_dataset, base_model_path, output_dir):
+def train_grpo_model(model, tokenizer, train_dataset, output_dir):
     """Train model using GRPO"""
     print("Starting GRPO training...")
     
-    # Load the base model (SFT model)
-    print(f"Loading base model from {base_model_path}")
-    base_lora_adapter = model.load_lora(base_model_path)
+    # Base model (SFT model) LoRA is loaded in load_model()
     
     grpo_config = config.training.grpo
     model_config = config.model
@@ -111,15 +109,15 @@ def main():
     print(f"Base model: {args.base_model} -> {base_model_path}")
     
     # Load model and datasets
-    model, tokenizer = load_model()
+    model, tokenizer = load_model(base_model_path)
     gsm8k_train, _ = load_gsm8k_datasets()
     
     # Prepare GRPO dataset
-    grpo_dataset = prepare_grpo_dataset(gsm8k_train, n_samples)
+    grpo_dataset = prepare_grpo_dataset(gsm8k_train)
     print(f"GRPO dataset size: {len(grpo_dataset)}")
     
     # Train model
-    trained_model = train_grpo_model(model, tokenizer, grpo_dataset, base_model_path, output_dir)
+    trained_model = train_grpo_model(model, tokenizer, grpo_dataset, output_dir)
     
     print(f"GRPO training complete! Model saved to {output_dir}")
 
