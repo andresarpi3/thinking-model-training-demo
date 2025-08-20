@@ -59,11 +59,31 @@ class PromptTemplates(BaseModel):
 class OutputDirectories(BaseModel):
     """Output directories configuration."""
     base_dir: str = Field(description="Base directory for outputs")
-    models_dir: str = Field(description="Directory for saved models")
-    debug_dir: str = Field(description="Directory for debug outputs")
-    sft_model: str = Field(description="Path for SFT model")
-    rl_sft_model: str = Field(description="Path for RL preparation SFT model")
-    grpo_model: str = Field(description="Path for GRPO model")
+    models_dir: str = Field(description="Directory for saved models (relative to base_dir)")
+    debug_dir: str = Field(description="Directory for debug outputs (relative to base_dir)")
+    sft_model: str = Field(description="SFT model subdirectory name")
+    rl_sft_model: str = Field(description="RL preparation SFT model subdirectory name")
+    grpo_model: str = Field(description="GRPO model subdirectory name")
+    
+    def get_models_path(self) -> str:
+        """Get full path to models directory."""
+        return f"{self.base_dir}/{self.models_dir}"
+    
+    def get_debug_path(self) -> str:
+        """Get full path to debug directory."""
+        return f"{self.base_dir}/{self.debug_dir}"
+    
+    def get_sft_model_path(self) -> str:
+        """Get full path to SFT model."""
+        return f"{self.base_dir}/{self.models_dir}/{self.sft_model}"
+    
+    def get_rl_sft_model_path(self) -> str:
+        """Get full path to RL SFT model."""
+        return f"{self.base_dir}/{self.models_dir}/{self.rl_sft_model}"
+    
+    def get_grpo_model_path(self) -> str:
+        """Get full path to GRPO model."""
+        return f"{self.base_dir}/{self.models_dir}/{self.grpo_model}"
 
 
 class Config(BaseModel):
@@ -117,10 +137,10 @@ config = Config(
     ),
     outputs=OutputDirectories(
         base_dir="outputs",
-        models_dir="outputs/models",
-        debug_dir="outputs/debug",
-        sft_model="outputs/models/sft_model",
-        rl_sft_model="outputs/models/rl_sft_model",
-        grpo_model="outputs/models/grpo_model"
+        models_dir="models",
+        debug_dir="debug",
+        sft_model="sft_model",
+        rl_sft_model="rl_sft_model",
+        grpo_model="grpo_model"
     )
 )

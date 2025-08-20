@@ -93,12 +93,18 @@ def main():
     # Config is imported directly from config.py
     
     # Create output directories
-    os.makedirs(config.outputs.models_dir, exist_ok=True)
+    os.makedirs(config.outputs.get_models_path(), exist_ok=True)
     
     # Resolve base model path from config
-    base_model_path = getattr(config.outputs, args.base_model)
+    # Map base model names to their full paths
+    base_model_map = {
+        'sft_model': config.outputs.get_sft_model_path(),
+        'rl_sft_model': config.outputs.get_rl_sft_model_path(),
+        'grpo_model': config.outputs.get_grpo_model_path()
+    }
+    base_model_path = base_model_map[args.base_model]
     
-    output_dir = config.outputs.grpo_model
+    output_dir = config.outputs.get_grpo_model_path()
     n_samples = config.training.sft.rl_prep_samples
     
     print(f"Training GRPO model with {n_samples} samples")

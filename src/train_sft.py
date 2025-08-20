@@ -57,16 +57,16 @@ def main():
     # Config is imported directly from config.py
     
     # Create output directories
-    os.makedirs(config.outputs.models_dir, exist_ok=True)
+    os.makedirs(config.outputs.get_models_path(), exist_ok=True)
     
     # Determine number of samples and output directory based on stage
     sft_config = config.training.sft
     if args.stage == "full":
         n_samples = sft_config.full_samples
-        output_dir = config.outputs.sft_model
+        output_dir = config.outputs.get_sft_model_path()
     else:  # rl_prep
         n_samples = sft_config.rl_prep_samples
-        output_dir = config.outputs.rl_sft_model
+        output_dir = config.outputs.get_rl_sft_model_path()
     
     print(f"Training {args.stage} SFT model with {n_samples} samples")
     

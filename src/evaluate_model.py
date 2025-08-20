@@ -156,12 +156,18 @@ def main():
     # Config is imported directly from config.py
     
     # Create output directories
-    os.makedirs(config.outputs.debug_dir, exist_ok=True)
+    os.makedirs(config.outputs.get_debug_path(), exist_ok=True)
     
     # Resolve model path from config
     model_path = None
     if args.model_path:
-        model_path = getattr(config.outputs, args.model_path)
+        # Map model names to their full paths
+        model_path_map = {
+            'sft_model': config.outputs.get_sft_model_path(),
+            'rl_sft_model': config.outputs.get_rl_sft_model_path(),
+            'grpo_model': config.outputs.get_grpo_model_path()
+        }
+        model_path = model_path_map[args.model_path]
         print(f"Using model: {args.model_path} -> {model_path}")
     else:
         print("Evaluating base model")
@@ -176,7 +182,7 @@ def main():
     )
     
     # Save results
-    output_path = os.path.join(config.outputs.debug_dir, args.output_file)
+    output_path = os.path.join(config.outputs.get_debug_path(), args.output_file)
     df = pd.DataFrame(results)
     df.to_csv(output_path, index=False)
     print(f"Results saved to {output_path}")
