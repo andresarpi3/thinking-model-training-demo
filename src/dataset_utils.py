@@ -32,8 +32,8 @@ def load_gsm8k_datasets():
     gsm8k_train = load_dataset("openai/gsm8k", "main", split="train")
     gsm8k_test = load_dataset("openai/gsm8k", "main", split="test")
     
-    print(f"GSM8K train size: {len(gsm8k_train)}")
-    print(f"GSM8K test size: {len(gsm8k_test)}")
+    print(f"GSM8K train size: {len(gsm8k_train)}") # type: ignore
+    print(f"GSM8K test size: {len(gsm8k_test)}") # type: ignore
     
     return gsm8k_train, gsm8k_test
 
@@ -119,4 +119,4 @@ def prepare_grpo_dataset(dataset, n_samples, config):
         if formatted["answer"]:
             formatted_data.append(formatted)
 
-    return Dataset.from_lis
+    return Dataset.from_list(formatted_data)
