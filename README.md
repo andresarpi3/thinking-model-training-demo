@@ -49,37 +49,37 @@ Edit `config.json` to adjust:
 
 ### Step 1: Evaluate Base Model
 ```bash
-uv run src/evaluate_model.py --config config.json --output-file base_model_eval.csv
+uv run src/evaluate_model.py  --output-file base_model_eval.csv
 ```
 
 ### Step 2: Train SFT Model (Full)
 ```bash
-uv run src/train_sft.py --config config.json --stage full
+uv run src/train_sft.py  --stage full
 ```
 
 ### Step 3: Evaluate SFT Model
 ```bash
-uv run src/evaluate_model.py --config config.json --model-path sft_model --output-file sft_model_eval.csv
+uv run src/evaluate_model.py --model-path sft_model --output-file sft_model_eval.csv
 ```
 
 ### Step 4: Train RL Preparation Model (SFT with fewer samples)
 ```bash
-uv run src/train_sft.py --config config.json --stage rl_prep
+uv run src/train_sft.py  --stage rl_prep
 ```
 
 ### Step 5: Evaluate RL-SFT Model
 ```bash
-uv run src/evaluate_model.py --config config.json --model-path rl_sft_model --output-file rl_sft_eval.csv
+uv run src/evaluate_model.py  --model-path rl_sft_model --output-file rl_sft_eval.csv
 ```
 
 ### Step 6: Train GRPO Model
 ```bash
-uv run src/train_grpo.py --config config.json --base-model rl_sft_model
+uv run src/train_grpo.py  --base-model rl_sft_model
 ```
 
 ### Step 7: Evaluate GRPO Model
 ```bash
-uv run src/evaluate_model.py --config config.json --model-path grpo_model --output-file grpo_model_eval.csv
+uv run src/evaluate_model.py  --model-path grpo_model --output-file grpo_model_eval.csv
 ```
 
 ## Output Format

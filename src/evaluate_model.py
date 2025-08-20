@@ -3,28 +3,28 @@
 
 import unsloth
 import argparse
-import json
 import os
 import pandas as pd
 from vllm import SamplingParams
 
+from tr_config import config
 from model_utils import load_model
 from dataset_utils import load_gsm8k_datasets, extract_hash_answer, extract_thinking, extract_solution
 
 
-def evaluate_model(model, tokenizer, dataset, config, model_path=None):
+def evaluate_model(model, tokenizer, dataset, model_path=None):
     """Evaluate model on GSM8K test set using fast_generate with batching"""
-    eval_config = config["evaluation"]
-    prompts = config["prompts"]
+    eval_config = config.evaluation
+    prompts = config.prompts
     
-    eval_n = eval_config["num_samples"]
-    batch_size = eval_config["batch_size"]
+    eval_n = eval_config.num_samples
+    batch_size = eval_config.batch_size
     
-    system_prompt = prompts["system_prompt"]
-    reasoning_start = prompts["reasoning_start"]
-    reasoning_end = prompts["reasoning_end"]
-    solution_start = prompts["solution_start"]
-    solution_end = prompts["solution_end"]
+    system_prompt = prompts.system_prompt
+    reasoning_start = prompts.reasoning_start
+    reasoning_end = prompts.reasoning_end
+    solution_start = prompts.solution_start
+    solution_end = prompts.solution_end
     
     print(f"Evaluating model on {eval_n} examples with batch size {batch_size}...")
 
@@ -78,9 +78,9 @@ def evaluate_model(model, tokenizer, dataset, config, model_path=None):
 
         # Generate responses using fast_generate
         sampling_params = SamplingParams(
-            temperature=eval_config["temperature"],
-            top_k=eval_config["top_k"],
-            max_tokens=eval_config["max_tokens"],
+            temperature=eval_config.temperature,
+            top_k=eval_config.top_k,
+            max_tokens=eval_config.max_tokens,
             stop=[tokenizer.eos_token],
         )
 
@@ -147,38 +147,36 @@ def evaluate_model(model, tokenizer, dataset, config, model_path=None):
 
 def main():
     parser = argparse.ArgumentParser(description="Evaluate model on GSM8K")
-    parser.add_argument("--config", type=str, required=True, help="Path to config file")
+    # Config is now imported directly from config.py
     parser.add_argument("--model-path", type=str, help="Model name (e.g., 'sft_model', 'grpo_model') or None for base model")
     parser.add_argument("--output-file", type=str, required=True, help="Output CSV file")
     
     args = parser.parse_args()
     
-    # Load config
-    with open(args.config, 'r') as f:
-        config = json.load(f)
+    # Config is imported directly from config.py
     
     # Create output directories
-    os.makedirs(config["outputs"]["debug_dir"], exist_ok=True)
+    os.makedirs(config.outputs.debug_dir, exist_ok=True)
     
     # Resolve model path from config
     model_path = None
     if args.model_path:
-        model_path = config["outputs"][args.model_path]
+        model_path = getattr(config.outputs, args.model_path)
         print(f"Using model: {args.model_path} -> {model_path}")
     else:
         print("Evaluating base model")
     
     # Load model and datasets
-    model, tokenizer = load_model(config)
+    model, tokenizer = load_model()
     _, gsm8k_test = load_gsm8k_datasets()
     
     # Evaluate model
     results, accuracy, thinking_prop, answer_prop = evaluate_model(
-        model, tokenizer, gsm8k_test, config, model_path
+        model, tokenizer, gsm8k_test, model_path
     )
     
     # Save results
-    output_path = os.path.join(config["outputs"]["debug_dir"], args.output_file)
+    output_path = os.path.join(config.outputs.debug_dir, args.output_file)
     df = pd.DataFrame(results)
     df.to_csv(output_path, index=False)
     print(f"Results saved to {output_path}")

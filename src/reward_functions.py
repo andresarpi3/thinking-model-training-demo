@@ -2,14 +2,15 @@
 """Reward functions for GRPO training."""
 
 import re
+from tr_config import config
 
 
-def create_reward_functions(config):
+def create_reward_functions():
     """Create reward functions with config-specific tokens"""
-    prompts = config["prompts"]
-    reasoning_end = prompts["reasoning_end"]
-    solution_start = prompts["solution_start"]
-    solution_end = prompts["solution_end"]
+    prompts = config.prompts
+    reasoning_end = prompts.reasoning_end
+    solution_start = prompts.solution_start
+    solution_end = prompts.solution_end
     
     def match_format_exactly(completions, **kwargs):
         solution_end_regex = r"</SOLUTION>[\s]{0,}"

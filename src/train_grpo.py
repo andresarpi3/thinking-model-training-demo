@@ -3,18 +3,18 @@
 
 import unsloth
 import argparse
-import json
 import os
 import numpy as np
 from trl import GRPOConfig, GRPOTrainer
 from vllm import SamplingParams
 
+from tr_config import config
 from model_utils import load_model
 from dataset_utils import load_gsm8k_datasets, prepare_grpo_dataset
 from reward_functions import create_reward_functions
 
 
-def train_grpo_model(model, tokenizer, train_dataset, config, base_model_path, output_dir):
+def train_grpo_model(model, tokenizer, train_dataset, base_model_path, output_dir):
     """Train model using GRPO"""
     print("Starting GRPO training...")
     
@@ -22,8 +22,8 @@ def train_grpo_model(model, tokenizer, train_dataset, config, base_model_path, o
     print(f"Loading base model from {base_model_path}")
     base_lora_adapter = model.load_lora(base_model_path)
     
-    grpo_config = config["training"]["grpo"]
-    model_config = config["model"]
+    grpo_config = config.training.grpo
+    model_config = config.model
     
     # Calculate max prompt length
     tokenized = train_dataset.map(
@@ -31,7 +31,7 @@ def train_grpo_model(model, tokenizer, train_dataset, config, base_model_path, o
         batched=True,
     )
     max_prompt_length = int(np.quantile([len(tokens) for tokens in tokenized["tokens"]], 0.9)) + 1
-    max_completion_length = model_config["max_seq_length"] - max_prompt_length
+    max_completion_length = model_config.max_seq_length - max_prompt_length
 
     print(f"Max prompt length: {max_prompt_length}")
     print(f"Max completion length: {max_completion_length}")
@@ -48,25 +48,25 @@ def train_grpo_model(model, tokenizer, train_dataset, config, base_model_path, o
     training_args = GRPOConfig(
         vllm_sampling_params=vllm_sampling_params, # type: ignore
         temperature=1.0,
-        learning_rate=grpo_config["learning_rate"],
-        weight_decay=grpo_config["weight_decay"],
-        warmup_ratio=grpo_config["warmup_ratio"],
+        learning_rate=grpo_config.learning_rate,
+        weight_decay=grpo_config.weight_decay,
+        warmup_ratio=grpo_config.warmup_ratio,
         lr_scheduler_type="linear",
         optim="adamw_8bit",
         logging_steps=5,
-        per_device_train_batch_size=grpo_config["batch_size"],
+        per_device_train_batch_size=grpo_config.batch_size,
         gradient_accumulation_steps=2,
-        num_generations=grpo_config["num_generations"],
+        num_generations=grpo_config.num_generations,
         max_prompt_length=max_prompt_length,
         max_completion_length=max_completion_length,
-        max_steps=grpo_config["max_steps"],
+        max_steps=grpo_config.max_steps,
         save_steps=100,
         report_to="none",
         output_dir=output_dir,
     )
 
     # Create reward functions
-    reward_funcs = create_reward_functions(config)
+    reward_funcs = create_reward_functions()
 
     trainer = GRPOTrainer(
         model=model,
@@ -85,37 +85,35 @@ def train_grpo_model(model, tokenizer, train_dataset, config, base_model_path, o
 
 def main():
     parser = argparse.ArgumentParser(description="Train GRPO model")
-    parser.add_argument("--config", type=str, required=True, help="Path to config file")
+    # Config is now imported directly from config.py
     parser.add_argument("--base-model", type=str, required=True, help="Base model name (e.g., 'rl_sft_model')")
     
     args = parser.parse_args()
     
-    # Load config
-    with open(args.config, 'r') as f:
-        config = json.load(f)
+    # Config is imported directly from config.py
     
     # Create output directories
-    os.makedirs(config["outputs"]["models_dir"], exist_ok=True)
+    os.makedirs(config.outputs.models_dir, exist_ok=True)
     
     # Resolve base model path from config
-    base_model_path = config["outputs"][args.base_model]
+    base_model_path = getattr(config.outputs, args.base_model)
     
-    output_dir = config["outputs"]["grpo_model"]
-    n_samples = config["training"]["sft"]["rl_prep_samples"]
+    output_dir = config.outputs.grpo_model
+    n_samples = config.training.sft.rl_prep_samples
     
     print(f"Training GRPO model with {n_samples} samples")
     print(f"Base model: {args.base_model} -> {base_model_path}")
     
     # Load model and datasets
-    model, tokenizer = load_model(config)
+    model, tokenizer = load_model()
     gsm8k_train, _ = load_gsm8k_datasets()
     
     # Prepare GRPO dataset
-    grpo_dataset = prepare_grpo_dataset(gsm8k_train, n_samples, config)
+    grpo_dataset = prepare_grpo_dataset(gsm8k_train, n_samples)
     print(f"GRPO dataset size: {len(grpo_dataset)}")
     
     # Train model
-    trained_model = train_grpo_model(model, tokenizer, grpo_dataset, config, base_model_path, output_dir)
+    trained_model = train_grpo_model(model, tokenizer, grpo_dataset, base_model_path, output_dir)
     
     print(f"GRPO training complete! Model saved to {output_dir}")
 

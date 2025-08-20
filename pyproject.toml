@@ -12,6 +12,7 @@ dependencies = [
     "jupyterlab>=4.4.6",
     "ipywidgets>=8.1.7",
     "flashinfer-python>=0.2.12",
+    "pydantic>=2.0.0",
 ]
 
 [[tool.uv.index]]
