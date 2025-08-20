@@ -26,6 +26,7 @@ class GRPOHyperparameters(BaseModel):
     """GRPO (Group Relative Policy Optimization) hyperparameters."""
     learning_rate: float = Field(description="Learning rate for GRPO")
     batch_size: int = Field(description="Batch size for GRPO training")
+    gradient_accumulation_steps: int 
     max_steps: int = Field(description="Maximum training steps")
     num_generations: int = Field(description="Number of generations per batch")
     weight_decay: float = Field(description="Weight decay for optimization")
@@ -114,9 +115,10 @@ config = Config(
         ),
         grpo=GRPOHyperparameters(
             learning_rate=5e-6,
-            batch_size=2,
-            max_steps=200,
-            num_generations=2,
+            batch_size=8,
+            gradient_accumulation_steps=1,
+            max_steps=500,
+            num_generations=4,
             weight_decay=0.01,
             warmup_ratio=0.1
         )

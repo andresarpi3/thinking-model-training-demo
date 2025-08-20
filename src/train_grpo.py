@@ -53,7 +53,7 @@ def train_grpo_model(model, tokenizer, train_dataset, output_dir):
         optim="adamw_8bit",
         logging_steps=5,
         per_device_train_batch_size=grpo_config.batch_size,
-        gradient_accumulation_steps=2,
+        gradient_accumulation_steps=grpo_config.gradient_accumulation_steps,
         num_generations=grpo_config.num_generations,
         max_prompt_length=max_prompt_length,
         max_completion_length=max_completion_length,
