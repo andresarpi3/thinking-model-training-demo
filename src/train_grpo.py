@@ -61,6 +61,8 @@ def train_grpo_model(model, tokenizer, train_dataset, output_dir):
         save_steps=100,
         report_to="none",
         output_dir=output_dir,
+        use_vllm=True,
+        vllm_mode="colocate",
     )
 
     # Create reward functions
