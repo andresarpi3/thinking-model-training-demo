@@ -10,8 +10,16 @@ from vllm import SamplingParams
 from tr_config import config
 from model_utils import load_model
 from dataset_utils import load_gsm8k_datasets, extract_hash_answer, extract_thinking, extract_solution
+from dataclasses import dataclass
 
-
+@dataclass
+class EvalResults:
+    df: pd.DataFrame
+    accuracy: float
+    thinking_proportion: float
+    answer_proportion: float
+    
+    
 def evaluate_model(model, tokenizer, lora_adapter, dataset):
     """Evaluate model on GSM8K test set using fast_generate with batching"""
     eval_config = config.evaluation
@@ -138,7 +146,7 @@ def evaluate_model(model, tokenizer, lora_adapter, dataset):
     print(f"Proportion with thinking: {thinking_prop:.3f} ({thinking_count}/{total})")
     print(f"Proportion with extracted answer: {answer_prop:.3f} ({extracted_answer_count}/{total})")
 
-    return results, accuracy, thinking_prop, answer_prop
+    return EvalResults(df=pd.DataFrame(results), accuracy=accuracy, thinking_proportion=thinking_prop, answer_proportion=answer_prop)
 
 
 def main():
@@ -174,15 +182,19 @@ def main():
     _, gsm8k_test = load_gsm8k_datasets()
     
     # Evaluate model
-    results, accuracy, thinking_prop, answer_prop = evaluate_model(
+    results = evaluate_model(
         model, tokenizer, lora_adapter, gsm8k_test
     )
     
     # Save results
     output_path = os.path.join(config.outputs.get_debug_path(), args.output_file)
-    df = pd.DataFrame(results)
-    df.to_csv(output_path, index=False)
+    results.df.to_csv(output_path, index=False)
     print(f"Results saved to {output_path}")
+
+    with open(os.path.join(config.outputs.get_debug_path(), args.output_file.replace(".csv", "_metrics.txt")), "w") as f:
+        f.write(f"Accuracy: {results.accuracy:.3f}\n")
+        f.write(f"Proportion with thinking: {results.thinking_proportion:.3f}\n")
+        f.write(f"Proportion with extracted answer: {results.answer_proportion:.3f}\n")
 
 
 if __name__ == "__main__":
