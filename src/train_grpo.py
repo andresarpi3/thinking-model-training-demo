@@ -12,9 +12,10 @@ from tr_config import config
 from model_utils import load_model
 from dataset_utils import load_gsm8k_datasets, prepare_grpo_dataset
 from reward_functions import create_reward_functions
+import wandb
 
 
-def train_grpo_model(model, tokenizer, train_dataset, output_dir):
+def train_grpo_model(model, tokenizer, train_dataset, output_dir, base_model_path):
     """Train model using GRPO"""
     print("Starting GRPO training...")
     
@@ -33,6 +34,16 @@ def train_grpo_model(model, tokenizer, train_dataset, output_dir):
 
     print(f"Max prompt length: {max_prompt_length}")
     print(f"Max completion length: {max_completion_length}")
+    
+    _ = wandb.init(
+        entity=config.wanddb.entity,
+        project="grpo",
+        tags=['grpo_training'],
+        config={
+            "base_model_path": base_model_path,
+        },
+    ) if config.wanddb else None
+
 
     vllm_sampling_params = SamplingParams(
         min_p=0.1,
@@ -58,8 +69,11 @@ def train_grpo_model(model, tokenizer, train_dataset, output_dir):
         max_prompt_length=max_prompt_length,
         max_completion_length=max_completion_length,
         max_steps=grpo_config.max_steps,
+        num_train_epochs=grpo_config.num_epochs,
         save_steps=100,
-        report_to="none",
+        report_to="wandb" if config.wanddb else None,
+        log_completions=config.wanddb.log_completions if config.wanddb else False,
+        wandb_log_unique_prompts=config.wanddb.unique if config.wanddb else False,
         output_dir=output_dir,
         use_vllm=True,
         vllm_mode="colocate",
@@ -119,7 +133,7 @@ def main():
     print(f"GRPO dataset size: {len(grpo_dataset)}")
     
     # Train model
-    trained_model = train_grpo_model(model, tokenizer, grpo_dataset, output_dir)
+    trained_model = train_grpo_model(model, tokenizer, grpo_dataset, output_dir, base_model_path)
     
     print(f"GRPO training complete! Model saved to {output_dir}")
 

@@ -13,3 +13,4 @@ grpo_model/*
 .ipynb_checkpoints/
 outputs/*
 grpo_trainer_lora_model/*
+wandb/*

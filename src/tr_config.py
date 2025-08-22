@@ -28,6 +28,7 @@ class GRPOHyperparameters(BaseModel):
     batch_size: int = Field(description="Batch size for GRPO training")
     gradient_accumulation_steps: int 
     max_steps: int = Field(description="Maximum training steps")
+    num_epochs: int
     num_generations: int = Field(description="Number of generations per batch")
     weight_decay: float = Field(description="Weight decay for optimization")
     warmup_ratio: float = Field(description="Warmup ratio for learning rate scheduler")
@@ -85,6 +86,11 @@ class OutputDirectories(BaseModel):
     def get_grpo_model_path(self) -> str:
         """Get full path to GRPO model."""
         return f"{self.base_dir}/{self.models_dir}/{self.grpo_model}"
+    
+class WanDBConf(BaseModel):
+    entity: str
+    log_completions: bool
+    unique: bool = True
 
 
 class Config(BaseModel):
@@ -94,6 +100,7 @@ class Config(BaseModel):
     evaluation: EvaluationSettings
     prompts: PromptTemplates
     outputs: OutputDirectories
+    wanddb: WanDBConf | None
 
 
 # Default configuration instance
@@ -106,7 +113,7 @@ config = Config(
     ),
     training=TrainingHyperparameters(
         sft=SFTHyperparameters(
-            full_samples=1024,
+            full_samples=2000,
             rl_prep_samples=256,
             learning_rate=2e-4,
             batch_size=4,
@@ -117,8 +124,9 @@ config = Config(
             learning_rate=5e-6,
             batch_size=8,
             gradient_accumulation_steps=1,
-            max_steps=500,
-            num_generations=4,
+            max_steps=2000,
+            num_epochs = 1,
+            num_generations=8,
             weight_decay=0.01,
             warmup_ratio=0.1
         )
@@ -144,5 +152,9 @@ config = Config(
         sft_model="sft_model",
         rl_sft_model="rl_sft_model",
         grpo_model="grpo_model"
+    ),
+    wanddb=WanDBConf(
+        entity="andresarpi3-universidad-de-san-andr-s",
+        log_completions=True,
     )
 )

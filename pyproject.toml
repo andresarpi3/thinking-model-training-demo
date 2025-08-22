@@ -13,6 +13,7 @@ dependencies = [
     "ipywidgets>=8.1.7",
     "flashinfer-python>=0.2.12",
     "pydantic>=2.0.0",
+    "wandb>=0.21.1",
 ]
 
 [[tool.uv.index]]
