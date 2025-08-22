@@ -39,9 +39,12 @@ def load_gsm8k_datasets():
     return gsm8k_train, gsm8k_test
 
 
-def prepare_sft_dataset(dataset, n_samples, tokenizer):
+def prepare_sft_dataset(n_samples, tokenizer):
     """Prepare dataset for SFT training"""
     print(f"Preparing SFT dataset with {n_samples} samples...")
+    
+    dataset, _ = load_gsm8k_datasets()
+    assert isinstance(dataset, Dataset)
     
     prompts = config.prompts
     system_prompt = prompts.system_prompt
@@ -95,9 +98,12 @@ def prepare_sft_dataset(dataset, n_samples, tokenizer):
     return Dataset.from_dict(dataset_dict)
 
 
-def prepare_grpo_dataset(dataset, desired_size):
+def prepare_grpo_dataset(desired_size):
     """Prepare dataset for GRPO training"""
     print(f"Preparing GRPO dataset with {desired_size} samples...")
+    
+    dataset, _ = load_gsm8k_datasets()
+    assert isinstance(dataset, Dataset)
     
     system_prompt = config.prompts.system_prompt
     train_data = dataset.select(range(min(desired_size, len(dataset))))

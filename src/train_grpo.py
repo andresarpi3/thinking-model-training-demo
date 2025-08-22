@@ -116,10 +116,8 @@ def main():
     
     # Load model and datasets
     model, tokenizer = load_model(base_model_path)
-    gsm8k_train, _ = load_gsm8k_datasets()
     
-    # Prepare GRPO dataset
-    grpo_dataset = prepare_grpo_dataset(gsm8k_train, n_samples)
+    grpo_dataset = prepare_grpo_dataset(n_samples)
     print(f"GRPO dataset size: {len(grpo_dataset)}")
     
     # Train model

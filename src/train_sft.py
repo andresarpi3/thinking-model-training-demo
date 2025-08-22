@@ -72,10 +72,9 @@ def main():
     
     # Load model and datasets
     model, tokenizer = load_model(lora_path=None)  # No LoRA needed for SFT training
-    gsm8k_train, _ = load_gsm8k_datasets()
     
     # Prepare SFT dataset
-    sft_dataset = prepare_sft_dataset(gsm8k_train, n_samples, tokenizer)
+    sft_dataset = prepare_sft_dataset(n_samples, tokenizer)
     print(f"SFT dataset size: {len(sft_dataset)}")
     
     # Train model
