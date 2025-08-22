@@ -36,6 +36,14 @@ The scripts use minimal command line arguments, with most configuration handled 
 
 Model paths are automatically resolved from the config file, so you reference models by name rather than full paths.
 
+## Setup
+
+After restarting a pod, install uv:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+source ~/.bashrc
+```
+
 ## Configuration
 
 Edit `config.json` to adjust:
