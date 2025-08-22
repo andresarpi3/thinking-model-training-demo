@@ -9,6 +9,7 @@ from trl import SFTTrainer, SFTConfig
 from tr_config import config
 from model_utils import load_model
 from dataset_utils import load_gsm8k_datasets, prepare_sft_dataset
+from wandb_utils import wandb_run, get_wandb_report_to
 
 
 def train_sft_model(model, tokenizer, train_dataset, output_dir):
@@ -16,7 +17,7 @@ def train_sft_model(model, tokenizer, train_dataset, output_dir):
     print("Starting SFT training...")
     
     sft_config = config.training.sft
-    
+
     trainer = SFTTrainer(
         model=model,
         tokenizer=tokenizer, # type: ignore
@@ -33,7 +34,7 @@ def train_sft_model(model, tokenizer, train_dataset, output_dir):
             weight_decay=0.01,
             lr_scheduler_type="linear",
             seed=3407,
-            report_to="none",
+            report_to=get_wandb_report_to(),
             output_dir=output_dir,
             save_steps=500,
         ),
@@ -78,7 +79,15 @@ def main():
     print(f"SFT dataset size: {len(sft_dataset)}")
     
     # Train model
-    trained_model = train_sft_model(model, tokenizer, sft_dataset, output_dir)
+    with wandb_run(
+        project_name="grpo",
+        tags=[f'sft_training', f"sft_{args.stage}"],
+        extra_config={
+            "stage": args.stage,
+            "output_dir": output_dir,
+        }
+    ):
+        trained_model = train_sft_model(model, tokenizer, sft_dataset, output_dir)
     
     print(f"Training complete! Model saved to {output_dir}")
 

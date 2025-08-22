@@ -12,7 +12,7 @@ from tr_config import config
 from model_utils import load_model
 from dataset_utils import load_gsm8k_datasets, prepare_grpo_dataset
 from reward_functions import create_reward_functions
-import wandb
+from wandb_utils import wandb_run
 
 
 def train_grpo_model(model, tokenizer, train_dataset, output_dir, base_model_path):
@@ -34,16 +34,6 @@ def train_grpo_model(model, tokenizer, train_dataset, output_dir, base_model_pat
 
     print(f"Max prompt length: {max_prompt_length}")
     print(f"Max completion length: {max_completion_length}")
-    
-    _ = wandb.init(
-        entity=config.wanddb.entity,
-        project="grpo",
-        tags=['grpo_training'],
-        config={
-            "base_model_path": base_model_path,
-        },
-    ) if config.wanddb else None
-
 
     vllm_sampling_params = SamplingParams(
         min_p=0.1,
@@ -133,7 +123,14 @@ def main():
     print(f"GRPO dataset size: {len(grpo_dataset)}")
     
     # Train model
-    trained_model = train_grpo_model(model, tokenizer, grpo_dataset, output_dir, base_model_path)
+    with wandb_run(
+        project_name="grpo",
+        tags=['grpo_training'],
+        extra_config={
+            "base_model_path": base_model_path,
+        }
+    ):
+        trained_model = train_grpo_model(model, tokenizer, grpo_dataset, output_dir, base_model_path)
     
     print(f"GRPO training complete! Model saved to {output_dir}")
 
