@@ -105,7 +105,7 @@ class Config(BaseModel):
     prompts: PromptTemplates
     outputs: OutputDirectories
     dataset_size: DatasetSize
-    wanddb: WanDBConf | None
+    wandb: WanDBConf | None
 
 
 # Default configuration instance
@@ -161,7 +161,7 @@ config = Config(
         rl_prep_samples=128,
         grpo_samples=512,
     ),
-    wanddb=WanDBConf(
+    wandb=WanDBConf(
         entity="andresarpi3-universidad-de-san-andr-s",
         log_completions=True,
     )

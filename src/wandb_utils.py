@@ -9,14 +9,14 @@ from tr_config import config
 @contextmanager
 def wandb_run(project_name: str, tags: list, extra_config: dict = None):
     """Context manager for wandb runs."""
-    if not config.wanddb:
+    if not config.wandb:
         yield None
         return
         
     wandb_config = extra_config or {}
     
     with wandb.init(
-        entity=config.wanddb.entity,
+        entity=config.wandb.entity,
         project=project_name,
         tags=tags,
         config=wandb_config,
@@ -26,4 +26,4 @@ def wandb_run(project_name: str, tags: list, extra_config: dict = None):
 
 def get_wandb_report_to():
     """Get the report_to parameter for training configs."""
-    return "wandb" if config.wanddb else "none"
+    return "wandb" if config.wandb else "none"
