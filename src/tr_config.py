@@ -121,7 +121,7 @@ config = Config(
             learning_rate=2e-4,
             batch_size=4,
             gradient_accumulation_steps=4,
-            num_epochs=1
+            num_epochs=2
         ),
         grpo=GRPOHyperparameters(
             learning_rate=5e-6,
