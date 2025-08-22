@@ -14,8 +14,6 @@ class ModelSettings(BaseModel):
 
 class SFTHyperparameters(BaseModel):
     """Supervised Fine-Tuning hyperparameters."""
-    full_samples: int = Field(description="Number of samples for full SFT training")
-    rl_prep_samples: int = Field(description="Number of samples for RL preparation SFT")
     learning_rate: float = Field(description="Learning rate for SFT")
     batch_size: int = Field(description="Batch size for SFT training")
     gradient_accumulation_steps: int = Field(description="Gradient accumulation steps")
@@ -91,6 +89,12 @@ class WanDBConf(BaseModel):
     entity: str
     log_completions: bool
     unique: bool = True
+    
+class DatasetSize(BaseModel):
+    full_samples: int = Field(description="Number of samples for full SFT training")
+    rl_prep_samples: int = Field(description="Number of samples for RL preparation SFT")
+    grpo_samples: int = Field(description="Number of samples for GRPO training")
+
 
 
 class Config(BaseModel):
@@ -100,6 +104,7 @@ class Config(BaseModel):
     evaluation: EvaluationSettings
     prompts: PromptTemplates
     outputs: OutputDirectories
+    dataset_size: DatasetSize
     wanddb: WanDBConf | None
 
 
@@ -113,8 +118,6 @@ config = Config(
     ),
     training=TrainingHyperparameters(
         sft=SFTHyperparameters(
-            full_samples=2000,
-            rl_prep_samples=256,
             learning_rate=2e-4,
             batch_size=4,
             gradient_accumulation_steps=4,
@@ -124,7 +127,7 @@ config = Config(
             learning_rate=5e-6,
             batch_size=8,
             gradient_accumulation_steps=1,
-            max_steps=2000,
+            max_steps=-1,
             num_epochs = 1,
             num_generations=8,
             weight_decay=0.01,
@@ -152,6 +155,11 @@ config = Config(
         sft_model="sft_model",
         rl_sft_model="rl_sft_model",
         grpo_model="grpo_model"
+    ),
+    dataset_size=DatasetSize(
+        full_samples=512,
+        rl_prep_samples=128,
+        grpo_samples=512,
     ),
     wanddb=WanDBConf(
         entity="andresarpi3-universidad-de-san-andr-s",

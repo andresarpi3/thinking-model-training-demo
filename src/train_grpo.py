@@ -119,7 +119,7 @@ def main():
     base_model_path = base_model_map[args.base_model]
     
     output_dir = config.outputs.get_grpo_model_path()
-    n_samples = config.training.sft.rl_prep_samples
+    n_samples = config.dataset_size.grpo_samples
     
     print(f"Training GRPO model with {n_samples} samples")
     print(f"Base model: {args.base_model} -> {base_model_path}")
@@ -129,7 +129,7 @@ def main():
     gsm8k_train, _ = load_gsm8k_datasets()
     
     # Prepare GRPO dataset
-    grpo_dataset = prepare_grpo_dataset(gsm8k_train)
+    grpo_dataset = prepare_grpo_dataset(gsm8k_train, n_samples)
     print(f"GRPO dataset size: {len(grpo_dataset)}")
     
     # Train model

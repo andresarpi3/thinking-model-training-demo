@@ -95,12 +95,12 @@ def prepare_sft_dataset(dataset, n_samples, tokenizer):
     return Dataset.from_dict(dataset_dict)
 
 
-def prepare_grpo_dataset(dataset):
+def prepare_grpo_dataset(dataset, desired_size):
     """Prepare dataset for GRPO training"""
-    print(f"Preparing GRPO dataset with samples...")
+    print(f"Preparing GRPO dataset with {desired_size} samples...")
     
     system_prompt = config.prompts.system_prompt
-    train_data = dataset.select(range(len(dataset)))
+    train_data = dataset.select(range(min(desired_size, len(dataset))))
 
     def format_for_grpo(example):
         question = example["question"]
