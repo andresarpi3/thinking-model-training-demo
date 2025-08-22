@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Evaluate model on GSM8K test set."""
 
+from typing import Mapping
 import unsloth
 import argparse
 import os
@@ -9,7 +10,8 @@ from vllm import SamplingParams
 
 from tr_config import config
 from model_utils import load_model
-from dataset_utils import load_gsm8k_datasets, extract_hash_answer, extract_thinking, extract_solution
+from dataset_utils import prepare_sft_dataset, extract_hash_answer, extract_thinking, extract_solution
+from datasets import Dataset
 from dataclasses import dataclass
 
 @dataclass
@@ -20,12 +22,11 @@ class EvalResults:
     answer_proportion: float
     
     
-def evaluate_model(model, tokenizer, lora_adapter, dataset):
+def evaluate_model(model, tokenizer, lora_adapter, eval_dataset: Dataset):
     """Evaluate model on GSM8K test set using fast_generate with batching"""
     eval_config = config.evaluation
     prompts = config.prompts
     
-    eval_n = eval_config.num_samples
     batch_size = eval_config.batch_size
     
     system_prompt = prompts.system_prompt
@@ -34,12 +35,6 @@ def evaluate_model(model, tokenizer, lora_adapter, dataset):
     solution_start = prompts.solution_start
     solution_end = prompts.solution_end
     
-    print(f"Evaluating model on {eval_n} examples with batch size {batch_size}...")
-
-    # LoRA adapter is loaded in load_model() if model_path was provided
-
-    # Take subset for evaluation
-    eval_dataset = dataset.select(range(min(eval_n, len(dataset))))
 
     results = []
     correct_count = 0
@@ -60,20 +55,12 @@ def evaluate_model(model, tokenizer, lora_adapter, dataset):
         batch_labeled_answers = []
 
         for example in batch:
+            assert isinstance(example, Mapping)
+
             question = example["question"]
             labeled_cot = example["answer"]
-            labeled_answer = extract_hash_answer(labeled_cot)
-
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": question}
-            ]
-
-            text = tokenizer.apply_chat_template(
-                messages,
-                tokenize=False,
-                add_generation_prompt=True
-            )
+            labeled_answer = example["labeled_answer"]
+            text = example["prompt"]
 
             batch_prompts.append(text)
             batch_questions.append(question)
@@ -179,11 +166,13 @@ def main():
     # Load model and datasets
     model, tokenizer = load_model(model_path)
     lora_adapter = model.load_lora(model_path) if model_path else None
-    _, gsm8k_test = load_gsm8k_datasets()
+    
+    eval_n = config.evaluation.num_samples
+    eval_dataset = prepare_sft_dataset(eval_n, tokenizer, train=False)
     
     # Evaluate model
     results = evaluate_model(
-        model, tokenizer, lora_adapter, gsm8k_test
+        model, tokenizer, lora_adapter, eval_dataset
     )
     
     # Save results

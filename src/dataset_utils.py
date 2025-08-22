@@ -27,23 +27,11 @@ def extract_solution(text, solution_start, solution_end):
     return match.group(1).strip() if match else None
 
 
-def load_gsm8k_datasets():
-    """Load GSM8K train and test datasets"""
-    print("Loading GSM8K dataset...")
-    gsm8k_train = load_dataset("openai/gsm8k", "main", split="train")
-    gsm8k_test = load_dataset("openai/gsm8k", "main", split="test")
-    
-    print(f"GSM8K train size: {len(gsm8k_train)}") # type: ignore
-    print(f"GSM8K test size: {len(gsm8k_test)}") # type: ignore
-    
-    return gsm8k_train, gsm8k_test
-
-
-def prepare_sft_dataset(n_samples, tokenizer):
+def prepare_sft_dataset(n_samples, tokenizer, train: bool = True):
     """Prepare dataset for SFT training"""
     print(f"Preparing SFT dataset with {n_samples} samples...")
-    
-    dataset, _ = load_gsm8k_datasets()
+
+    dataset = load_dataset("openai/gsm8k", "main", split="train") if train else load_dataset("openai/gsm8k", "main", split="test")
     assert isinstance(dataset, Dataset)
     
     prompts = config.prompts
@@ -56,6 +44,9 @@ def prepare_sft_dataset(n_samples, tokenizer):
     # Take subset
     train_data = dataset.select(range(min(n_samples, len(dataset))))
 
+    questions = []
+    answers = []
+    labeled_answer = []
     def format_example(example):
         question = example["question"]
         answer_text = example["answer"]
@@ -63,7 +54,11 @@ def prepare_sft_dataset(n_samples, tokenizer):
         # Extract the numerical answer
         numerical_answer = extract_hash_answer(answer_text)
         if not numerical_answer:
-            return None
+            raise RuntimeError("Invalid answer: ", answer_text)
+        
+        questions.append(question)
+        answers.append(answer_text)
+        labeled_answer.append(numerical_answer)
 
         # Create formatted response with thinking and solution
         # Use the step-by-step solution as thinking
@@ -89,10 +84,20 @@ def prepare_sft_dataset(n_samples, tokenizer):
     # Convert to text format
     for item in formatted_data:
         item["text"] = tokenizer.apply_chat_template(item["messages"], tokenize=False)
+        item["prompt"] = tokenizer.apply_chat_template(
+            item["messages"][:-1],
+            tokenize=False,
+            add_generation_prompt=True
+        )
+
 
     dataset_dict = {
         "messages": [item["messages"] for item in formatted_data],
-        "text": [item["text"] for item in formatted_data]
+        "text": [item["text"] for item in formatted_data],
+        "prompt": [item["prompt"] for item in formatted_data],
+        "question": questions,
+        "answer": answers,
+        "labeled_answer": labeled_answer,
     }
 
     return Dataset.from_dict(dataset_dict)
@@ -102,7 +107,7 @@ def prepare_grpo_dataset(desired_size):
     """Prepare dataset for GRPO training"""
     print(f"Preparing GRPO dataset with {desired_size} samples...")
     
-    dataset, _ = load_gsm8k_datasets()
+    dataset = load_dataset("openai/gsm8k", "main", split="train")
     assert isinstance(dataset, Dataset)
     
     system_prompt = config.prompts.system_prompt

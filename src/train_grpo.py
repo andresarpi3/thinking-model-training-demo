@@ -10,7 +10,7 @@ from vllm import SamplingParams
 
 from tr_config import config
 from model_utils import load_model
-from dataset_utils import load_gsm8k_datasets, prepare_grpo_dataset
+from dataset_utils import prepare_grpo_dataset
 from reward_functions import create_reward_functions
 from wandb_utils import wandb_run
 

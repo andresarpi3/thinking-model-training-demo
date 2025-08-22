@@ -8,7 +8,7 @@ from trl import SFTTrainer, SFTConfig
 
 from tr_config import config
 from model_utils import load_model
-from dataset_utils import load_gsm8k_datasets, prepare_sft_dataset
+from dataset_utils import prepare_sft_dataset
 from wandb_utils import wandb_run, get_wandb_report_to
 
 
@@ -54,8 +54,6 @@ def main():
                        help="Training stage: 'full' for full SFT, 'rl_prep' for RL preparation")
     
     args = parser.parse_args()
-    
-    # Config is imported directly from config.py
     
     # Create output directories
     os.makedirs(config.outputs.get_models_path(), exist_ok=True)
