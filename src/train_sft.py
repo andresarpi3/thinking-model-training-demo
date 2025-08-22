@@ -81,7 +81,8 @@ def main():
     # Train model
     with wandb_run(
         project_name="grpo",
-        tags=[f'sft_training', f"sft_{args.stage}"],
+        group='sft_training', 
+        tags = [f"sft_{args.stage}"],
         extra_config={
             "stage": args.stage,
             "output_dir": output_dir,

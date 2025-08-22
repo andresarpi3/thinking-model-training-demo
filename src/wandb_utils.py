@@ -7,7 +7,7 @@ from tr_config import config
 
 
 @contextmanager
-def wandb_run(project_name: str, tags: list, extra_config: dict | None = None):
+def wandb_run(project_name: str, group: str | None, tags: list[str] | None = None,  extra_config: dict | None = None):
     """Context manager for wandb runs."""
     if not config.wandb:
         yield None
@@ -18,6 +18,7 @@ def wandb_run(project_name: str, tags: list, extra_config: dict | None = None):
     with wandb.init(
         entity=config.wandb.entity,
         project=project_name,
+        group=group,
         tags=tags,
         config=wandb_config,
     ) as run:

@@ -125,7 +125,7 @@ def main():
     # Train model
     with wandb_run(
         project_name="grpo",
-        tags=['grpo_training'],
+        group='grpo_training',
         extra_config={
             "base_model_path": base_model_path,
         }
