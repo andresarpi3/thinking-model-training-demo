@@ -109,7 +109,7 @@ def main():
     base_model_path = base_model_map[args.base_model]
     
     output_dir = config.outputs.get_grpo_model_path()
-    n_samples = config.dataset_size.grpo_samples
+    n_samples = config.dataset_size.train_samples
     
     print(f"Training GRPO model with {n_samples} samples")
     print(f"Base model: {args.base_model} -> {base_model_path}")

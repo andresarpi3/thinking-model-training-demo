@@ -60,10 +60,10 @@ def main():
     
     # Determine number of samples and output directory based on stage
     if args.stage == "full":
-        n_samples = config.dataset_size.full_samples
+        n_samples = config.dataset_size.train_samples
         output_dir = config.outputs.get_sft_model_path()
     else:  # rl_prep
-        n_samples = config.dataset_size.rl_prep_samples
+        n_samples = config.dataset_size.rl_prep_train_samples
         output_dir = config.outputs.get_rl_sft_model_path()
     
     print(f"Training {args.stage} SFT model with {n_samples} samples")

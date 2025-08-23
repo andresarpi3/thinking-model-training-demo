@@ -91,9 +91,8 @@ class WanDBConf(BaseModel):
     unique: bool = True
     
 class DatasetSize(BaseModel):
-    full_samples: int = Field(description="Number of samples for full SFT training")
-    rl_prep_samples: int = Field(description="Number of samples for RL preparation SFT")
-    grpo_samples: int = Field(description="Number of samples for GRPO training")
+    train_samples: int = Field(description="Number of samples for full SFT and GRPO training")
+    rl_prep_train_samples: int = Field(description="Number of samples for RL preparation SFT")
 
 
 
@@ -157,9 +156,8 @@ config = Config(
         grpo_model="grpo_model"
     ),
     dataset_size=DatasetSize(
-        full_samples=512,
-        rl_prep_samples=128,
-        grpo_samples=512,
+        train_samples=512,
+        rl_prep_train_samples=128,
     ),
     wandb=WanDBConf(
         entity="andresarpi3-universidad-de-san-andr-s",
