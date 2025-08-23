@@ -149,13 +149,10 @@ def save_outputs_from_eval(output_file: str, results: EvalResults, run: Run | No
         f.write(f"Proportion with thinking: {results.thinking_proportion:.3f}\n")
         f.write(f"Proportion with extracted answer: {results.answer_proportion:.3f}\n")
         
-        if run:
-            run.log({"eval_metrics": {
-                "accuracy": results.accuracy,
-                "proportion_with_thinking": results.thinking_proportion,
-                "proportion_with_extracted_answer": results.answer_proportion
-            }})
-
+    if run:
+        run.summary["accuracy"] = results.accuracy
+        run.summary["proportion_with_thinking"] = results.thinking_proportion
+        run.summary["proportion_with_extracted_answer"] = results.answer_proportion
 
 def main():
     parser = argparse.ArgumentParser(description="Evaluate model on GSM8K")

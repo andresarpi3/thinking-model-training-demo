@@ -84,6 +84,7 @@ def main():
         extra_config={
             "stage": args.stage,
             "output_dir": output_dir,
+            "num_samples_train": n_samples,
         }
     ) as run:
         trained_model = train_sft_model(model, tokenizer, sft_dataset, output_dir)
