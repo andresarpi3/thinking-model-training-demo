@@ -1,8 +1,17 @@
 #!/usr/bin/env python
 """Configuration models using Pydantic for type safety."""
 
+import os
 from pydantic import BaseModel, Field
+from typing import TypeVar, cast
 
+T = TypeVar('T')
+def _c(ev_nam: str, default: str) -> str:
+    env_var = os.environ.get(ev_nam, default)
+
+    print(f"Environment variable '{ev_nam}': {env_var}")
+
+    return env_var
 
 class ModelSettings(BaseModel):
     """Model settings (name, sequence length, LoRA parameters)."""
@@ -149,7 +158,7 @@ config = Config(
         solution_end="</SOLUTION>"
     ),
     outputs=OutputDirectories(
-        base_dir="outputs",
+        base_dir=_c("OUTPUT_DIR", "outputs"),
         models_dir="models",
         debug_dir="debug",
         sft_model="sft_model",
@@ -157,7 +166,7 @@ config = Config(
         grpo_model="grpo_model"
     ),
     dataset_size=DatasetSize(
-        train_samples=512,
+        train_samples=int(_c("TRAIN_SAMPLES", "512")),
         rl_prep_train_samples=128,
     ),
     wandb=WanDBConf(
