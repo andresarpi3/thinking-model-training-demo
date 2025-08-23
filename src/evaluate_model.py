@@ -7,6 +7,7 @@ import argparse
 import os
 import pandas as pd
 from vllm import SamplingParams
+from wandb import Run
 
 from tr_config import config
 from model_utils import load_model
@@ -136,6 +137,26 @@ def evaluate_model(model, tokenizer, lora_adapter, eval_dataset: Dataset):
     return EvalResults(df=pd.DataFrame(results), accuracy=accuracy, thinking_proportion=thinking_prop, answer_proportion=answer_prop)
 
 
+def save_outputs_from_eval(output_file: str, results: EvalResults, run: Run | None = None):
+    os.makedirs(config.outputs.get_debug_path(), exist_ok=True)
+
+    output_path = os.path.join(config.outputs.get_debug_path(), output_file)
+    results.df.to_csv(output_path, index=False)
+    print(f"Results saved to {output_path}")
+
+    with open(os.path.join(config.outputs.get_debug_path(), output_file.replace(".csv", "_metrics.txt")), "w") as f:
+        f.write(f"Accuracy: {results.accuracy:.3f}\n")
+        f.write(f"Proportion with thinking: {results.thinking_proportion:.3f}\n")
+        f.write(f"Proportion with extracted answer: {results.answer_proportion:.3f}\n")
+        
+        if run:
+            run.log({"eval_metrics": {
+                "accuracy": results.accuracy,
+                "proportion_with_thinking": results.thinking_proportion,
+                "proportion_with_extracted_answer": results.answer_proportion
+            }})
+
+
 def main():
     parser = argparse.ArgumentParser(description="Evaluate model on GSM8K")
     # Config is now imported directly from config.py
@@ -144,10 +165,6 @@ def main():
     
     args = parser.parse_args()
     
-    # Config is imported directly from config.py
-    
-    # Create output directories
-    os.makedirs(config.outputs.get_debug_path(), exist_ok=True)
     
     # Resolve model path from config
     model_path = None
@@ -176,14 +193,8 @@ def main():
     )
     
     # Save results
-    output_path = os.path.join(config.outputs.get_debug_path(), args.output_file)
-    results.df.to_csv(output_path, index=False)
-    print(f"Results saved to {output_path}")
+    save_outputs_from_eval(args.output_file, results)
 
-    with open(os.path.join(config.outputs.get_debug_path(), args.output_file.replace(".csv", "_metrics.txt")), "w") as f:
-        f.write(f"Accuracy: {results.accuracy:.3f}\n")
-        f.write(f"Proportion with thinking: {results.thinking_proportion:.3f}\n")
-        f.write(f"Proportion with extracted answer: {results.answer_proportion:.3f}\n")
 
 
 if __name__ == "__main__":

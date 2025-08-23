@@ -10,7 +10,7 @@ from tr_config import config
 from model_utils import load_model
 from dataset_utils import prepare_sft_dataset
 from wandb_utils import wandb_run, get_wandb_report_to
-
+from evaluate_model import evaluate_model, save_outputs_from_eval
 
 def train_sft_model(model, tokenizer, train_dataset, output_dir):
     """Train model using SFT"""
@@ -52,7 +52,8 @@ def main():
     # Config is now imported directly from config.py
     parser.add_argument("--stage", type=str, choices=["full", "rl_prep"], required=True, 
                        help="Training stage: 'full' for full SFT, 'rl_prep' for RL preparation")
-    
+    parser.add_argument("--eval", type=bool, default=True, help="Wether to run eval at the end of the training")
+
     args = parser.parse_args()
     
     # Create output directories
@@ -84,9 +85,17 @@ def main():
             "stage": args.stage,
             "output_dir": output_dir,
         }
-    ):
+    ) as run:
         trained_model = train_sft_model(model, tokenizer, sft_dataset, output_dir)
-    
+        run_id = run.id if run else None
+        
+        if args.eval:
+            lora_adapter = trained_model.load_lora(output_dir)
+            eval_dataset = prepare_sft_dataset(config.evaluation.num_samples, tokenizer, train=False)
+            results = evaluate_model(trained_model, tokenizer, lora_adapter, eval_dataset)
+            output_file = f"{args.stage}_sft_{run_id or ''}.csv"
+            save_outputs_from_eval(output_file, results, run = run)
+
     print(f"Training complete! Model saved to {output_dir}")
 
 
