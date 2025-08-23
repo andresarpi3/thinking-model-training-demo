@@ -58,7 +58,7 @@ def train_grpo_model(model, tokenizer, train_dataset, output_dir, base_model_pat
         num_generations=grpo_config.num_generations,
         max_prompt_length=max_prompt_length,
         max_completion_length=max_completion_length,
-        max_steps=grpo_config.max_steps,
+        max_steps=-1, # grpo_config.max_steps, (use num_epochs to control)
         num_train_epochs=grpo_config.num_epochs,
         save_steps=100,
         report_to="wandb" if config.wandb else None,
