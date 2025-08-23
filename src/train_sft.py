@@ -81,14 +81,15 @@ def main():
         project_name="grpo",
         group='sft_training', 
         tags = [f"sft_{args.stage}"],
-        extra_config={
-            "stage": args.stage,
-            "output_dir": output_dir,
-            "num_samples_train": n_samples,
-        }
     ) as run:
         trained_model = train_sft_model(model, tokenizer, sft_dataset, output_dir)
         run_id = run.id if run else None
+        
+        if run: 
+            run.summary["stage"] = args.stage
+            run.summary["output_dir"] = output_dir
+            run.summary["num_samples_train"] = n_samples
+
         
         if args.eval:
             lora_adapter = trained_model.load_lora(output_dir)
