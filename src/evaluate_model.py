@@ -71,7 +71,7 @@ def evaluate_model(model, tokenizer, lora_adapter, eval_dataset: Dataset):
         sampling_params = SamplingParams(
             temperature=eval_config.temperature,
             top_k=eval_config.top_k,
-            max_tokens=eval_config.max_tokens,
+            max_tokens=config.model.max_seq_length,
             stop=[tokenizer.eos_token],
         )
 

@@ -54,7 +54,6 @@ class EvaluationSettings(BaseModel):
     batch_size: int = Field(description="Batch size for evaluation")
     temperature: float = Field(description="Temperature for generation")
     top_k: int = Field(description="Top-k for generation")
-    max_tokens: int = Field(description="Maximum tokens to generate")
 
 
 class PromptTemplates(BaseModel):
@@ -148,7 +147,6 @@ config = Config(
         batch_size=32,
         temperature=0.7,
         top_k=50,
-        max_tokens=512
     ),
     prompts=PromptTemplates(
         system_prompt="You are given a problem.\nThink about the problem and provide your working out.\nPlace it between <start_working_out> and <end_working_out>.\nThen, provide your solution between <SOLUTION></SOLUTION>",
