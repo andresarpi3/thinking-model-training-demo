@@ -8,9 +8,10 @@ import numpy as np
 from trl import GRPOConfig, GRPOTrainer
 from vllm import SamplingParams
 
+from evaluate_model import evaluate_model, save_outputs_from_eval
 from tr_config import config
 from model_utils import load_model
-from dataset_utils import prepare_grpo_dataset
+from dataset_utils import prepare_grpo_dataset, prepare_sft_dataset
 from reward_functions import create_reward_functions
 from wandb_utils import wandb_run
 
@@ -91,7 +92,8 @@ def main():
     parser = argparse.ArgumentParser(description="Train GRPO model")
     # Config is now imported directly from config.py
     parser.add_argument("--base-model", type=str, required=True, help="Base model name (e.g., 'rl_sft_model')")
-    
+    parser.add_argument("--eval", type=bool, default=True, help="Wether to run eval at the end of the training")
+
     args = parser.parse_args()
     
     # Config is imported directly from config.py
@@ -126,9 +128,26 @@ def main():
         group='grpo_training',
         extra_config={
             "base_model_path": base_model_path,
-        }
-    ):
+        },
+        tags = [f"{n_samples}_num_samples"],
+    ) as run:
         trained_model = train_grpo_model(model, tokenizer, grpo_dataset, output_dir, base_model_path)
+        
+        if run: 
+            run.summary["output_dir"] = output_dir
+            run.summary["num_samples_train"] = n_samples
+            run_id = run.id
+        else:
+            run_id = None
+
+        
+        if args.eval:
+            lora_adapter = trained_model.load_lora(output_dir)
+            eval_dataset = prepare_sft_dataset(config.evaluation.num_samples, tokenizer, train=False)
+            results = evaluate_model(trained_model, tokenizer, lora_adapter, eval_dataset)
+            output_file = f"grpo_{run_id or ''}.csv"
+            save_outputs_from_eval(output_file, results, run = run)
+
     
     print(f"GRPO training complete! Model saved to {output_dir}")
 
