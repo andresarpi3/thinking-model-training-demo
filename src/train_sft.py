@@ -80,7 +80,7 @@ def main():
     with wandb_run(
         project_name="grpo",
         group='sft_training', 
-        tags = [f"sft_{args.stage}"],
+        tags = [f"sft_{args.stage}", f"{config.dataset_size.train_samples}_num_samples"],
     ) as run:
         trained_model = train_sft_model(model, tokenizer, sft_dataset, output_dir)
         run_id = run.id if run else None
