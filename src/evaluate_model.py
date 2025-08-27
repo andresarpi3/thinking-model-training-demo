@@ -157,7 +157,7 @@ def save_outputs_from_eval(output_file: str, results: EvalResults, run: Run | No
 def main():
     parser = argparse.ArgumentParser(description="Evaluate model on GSM8K")
     # Config is now imported directly from config.py
-    parser.add_argument("--model-path", type=str, help="Model name (e.g., 'sft_model', 'grpo_model') or None for base model")
+    parser.add_argument("--model-path", type=str, help="Model name (e.g., 'prep_sft_model', 'sft_model', 'grpo_model') or None for base model")
     parser.add_argument("--output-file", type=str, required=True, help="Output CSV file")
     
     args = parser.parse_args()
@@ -168,8 +168,8 @@ def main():
     if args.model_path:
         # Map model names to their full paths
         model_path_map = {
+            'prep_sft_model': config.outputs.get_prep_sft_model_path(),
             'sft_model': config.outputs.get_sft_model_path(),
-            'rl_sft_model': config.outputs.get_rl_sft_model_path(),
             'grpo_model': config.outputs.get_grpo_model_path()
         }
         model_path = model_path_map[args.model_path]

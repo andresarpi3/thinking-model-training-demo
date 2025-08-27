@@ -50,8 +50,9 @@ def train_sft_model(model, tokenizer, train_dataset, output_dir):
 def main():
     parser = argparse.ArgumentParser(description="Train SFT model")
     # Config is now imported directly from config.py
-    parser.add_argument("--stage", type=str, choices=["full", "rl_prep"], required=True, 
-                       help="Training stage: 'full' for full SFT, 'rl_prep' for RL preparation")
+    parser.add_argument("--stage", type=str, choices=["full", "prep"], required=True, 
+                       help="Training stage: 'full' for full SFT, 'prep' for preparation SFT")
+    parser.add_argument("--base-model", type=str, help="Base model name (e.g., 'prep_sft_model') for full stage")
     parser.add_argument("--eval", type=bool, default=True, help="Wether to run eval at the end of the training")
 
     args = parser.parse_args()
@@ -59,18 +60,28 @@ def main():
     # Create output directories
     os.makedirs(config.outputs.get_models_path(), exist_ok=True)
     
-    # Determine number of samples and output directory based on stage
+    # Determine number of samples, output directory, and base model based on stage
     if args.stage == "full":
         n_samples = config.dataset_size.train_samples
         output_dir = config.outputs.get_sft_model_path()
-    else:  # rl_prep
-        n_samples = config.dataset_size.rl_prep_train_samples
-        output_dir = config.outputs.get_rl_sft_model_path()
+        # For full stage, use prep model as base if specified
+        if args.base_model:
+            base_model_map = {
+                'prep_sft_model': config.outputs.get_prep_sft_model_path(),
+            }
+            base_model_path = base_model_map[args.base_model]
+        else:
+            base_model_path = None
+    else:  # prep
+        n_samples = config.dataset_size.prep_train_samples
+        output_dir = config.outputs.get_prep_sft_model_path()
+        base_model_path = None  # prep stage always starts from base model
     
     print(f"Training {args.stage} SFT model with {n_samples} samples")
-    
+    print(f"Base model: {args.base_model} -> {base_model_path}")
+
     # Load model and datasets
-    model, tokenizer = load_model(lora_path=None)  # No LoRA needed for SFT training
+    model, tokenizer = load_model(lora_path=base_model_path)
     
     # Prepare SFT dataset
     sft_dataset = prepare_sft_dataset(n_samples, tokenizer)
@@ -80,7 +91,7 @@ def main():
     with wandb_run(
         project_name="grpo",
         group='sft_training', 
-        tags = [f"sft_{args.stage}", f"{config.dataset_size.train_samples}_num_samples"],
+        tags = [f"sft_{args.stage}", f"{n_samples}_num_samples"],
     ) as run:
         trained_model = train_sft_model(model, tokenizer, sft_dataset, output_dir)
         run_id = run.id if run else None

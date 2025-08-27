@@ -17,9 +17,9 @@ This project implements a complete training pipeline for GSM8K mathematical reas
 │   └── train_grpo.py         # GRPO reinforcement learning script
 └── outputs/
     ├── models/               # Trained model checkpoints
-    │   ├── sft_model/
-    │   ├── rl_sft_model/
-    │   └── grpo_model/
+    │   ├── prep_sft_model/   # Preparation SFT model (trained on smaller dataset)
+    │   ├── sft_model/        # Full SFT model (trained on larger dataset)
+    │   └── grpo_model/       # GRPO model (trained with reinforcement learning)
     └── debug/               # Evaluation results and debug info
         └── *.csv           # Evaluation CSV files
 ```
@@ -30,8 +30,8 @@ The scripts use minimal command line arguments, with most configuration handled 
 
 - `--config`: Path to configuration file (required for all scripts)
 - `--model-path`: Model name from config (e.g., `sft_model`, `grpo_model`) or None for base model (evaluate_model.py)
-- `--base-model`: Base model name from config for GRPO training (train_grpo.py)
-- `--stage`: Training stage - `full` or `rl_prep` (train_sft.py)
+- `--base-model`: Base model name from config for GRPO training (train_grpo.py) and optionally for full SFT training (train_sft.py)
+- `--stage`: Training stage - `full` or `prep` (train_sft.py)
 - `--output-file`: Output CSV filename for evaluation results
 
 Model paths are automatically resolved from the config file, so you reference models by name rather than full paths.
@@ -60,22 +60,22 @@ Edit `config.json` to adjust:
 uv run src/evaluate_model.py  --output-file base_model_eval.csv
 ```
 
-### Step 2: Train SFT Model (Full)
+### Step 2: Train Preparation SFT Model (fewer samples)
 Training automatically evaluates the model after completion.
 ```bash
-uv run src/train_sft.py  --stage full
+uv run src/train_sft.py --stage prep
 ```
 
-### Step 3: Train RL Preparation Model (SFT with fewer samples)
+### Step 3: Train Full SFT Model (using prep model as base)
 Training automatically evaluates the model after completion.
 ```bash
-uv run src/train_sft.py  --stage rl_prep
+uv run src/train_sft.py --stage full --base-model prep_sft_model
 ```
 
-### Step 4: Train GRPO Model
+### Step 4: Train GRPO Model (using prep model as base)
 Training automatically evaluates the model after completion.
 ```bash
-uv run src/train_grpo.py  --base-model rl_sft_model
+uv run src/train_grpo.py --base-model prep_sft_model
 ```
 
 ## Standalone Evaluation
@@ -87,14 +87,14 @@ To evaluate any model without training:
 uv run src/evaluate_model.py --output-file base_model_eval.csv
 ```
 
-### SFT Model
+### Preparation SFT Model
 ```bash
-uv run src/evaluate_model.py --model-path sft_model --output-file sft_model_eval.csv
+uv run src/evaluate_model.py --model-path prep_sft_model --output-file prep_sft_eval.csv
 ```
 
-### RL-SFT Model
+### Full SFT Model
 ```bash
-uv run src/evaluate_model.py --model-path rl_sft_model --output-file rl_sft_eval.csv
+uv run src/evaluate_model.py --model-path sft_model --output-file sft_model_eval.csv
 ```
 
 ### GRPO Model
@@ -120,9 +120,9 @@ Results are saved as CSV files in `outputs/debug/` with detailed per-example ana
 ## Training Stages
 
 1. **Base Model Evaluation**: Establishes baseline performance
-2. **Full SFT**: Trains on 1024 examples to learn the output format
-3. **RL Preparation SFT**: Trains on 256 examples as base for RL
-4. **GRPO Training**: Uses reinforcement learning with reward functions to improve reasoning quality
+2. **Preparation SFT**: Trains on fewer examples to establish basic format learning
+3. **Full SFT**: Trains on full dataset using prep model as starting point
+4. **GRPO Training**: Uses reinforcement learning with reward functions, starting from prep model to improve reasoning quality
 
 ## File Descriptions
 
@@ -133,3 +133,9 @@ Results are saved as CSV files in `outputs/debug/` with detailed per-example ana
 - `src/train_sft.py`: Supervised fine-tuning with configurable sample sizes
 - `src/train_grpo.py`: GRPO training with multiple reward functions
 - `src/evaluate_model.py`: Batch evaluation with detailed result logging
+
+
+export  OUTPUT_DIR="outputs/short-run" \
+        EVAL_SAMPLES=128 \
+        TRAIN_SAMPLES=256 
+uv run src/evaluate_model.py --output-file base_model_eval.csv

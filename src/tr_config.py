@@ -71,7 +71,7 @@ class OutputDirectories(BaseModel):
     models_dir: str = Field(description="Directory for saved models (relative to base_dir)")
     debug_dir: str = Field(description="Directory for debug outputs (relative to base_dir)")
     sft_model: str = Field(description="SFT model subdirectory name")
-    rl_sft_model: str = Field(description="RL preparation SFT model subdirectory name")
+    prep_sft_model: str = Field(description="Preparation SFT model subdirectory name")
     grpo_model: str = Field(description="GRPO model subdirectory name")
     
     def get_models_path(self) -> str:
@@ -86,9 +86,9 @@ class OutputDirectories(BaseModel):
         """Get full path to SFT model."""
         return f"{self.base_dir}/{self.models_dir}/{self.sft_model}"
     
-    def get_rl_sft_model_path(self) -> str:
-        """Get full path to RL SFT model."""
-        return f"{self.base_dir}/{self.models_dir}/{self.rl_sft_model}"
+    def get_prep_sft_model_path(self) -> str:
+        """Get full path to prep SFT model."""
+        return f"{self.base_dir}/{self.models_dir}/{self.prep_sft_model}"
     
     def get_grpo_model_path(self) -> str:
         """Get full path to GRPO model."""
@@ -101,7 +101,7 @@ class WanDBConf(BaseModel):
     
 class DatasetSize(BaseModel):
     train_samples: int = Field(description="Number of samples for full SFT and GRPO training")
-    rl_prep_train_samples: int = Field(description="Number of samples for RL preparation SFT")
+    prep_train_samples: int = Field(description="Number of samples for preparation SFT")
 
 
 
@@ -137,13 +137,13 @@ config = Config(
             gradient_accumulation_steps=1,
             # max_steps=-1,
             num_epochs=2,
-            num_generations=8,
+            num_generations=int(_c("NUM_GENERATIONS", "8")),
             weight_decay=0.01,
             warmup_ratio=0.1
         )
     ),
     evaluation=EvaluationSettings(
-        num_samples=512,
+        num_samples=int(_c("EVAL_SAMPLES", "512")),
         batch_size=32,
         temperature=0.7,
         top_k=50,
@@ -160,12 +160,12 @@ config = Config(
         models_dir="models",
         debug_dir="debug",
         sft_model="sft_model",
-        rl_sft_model="rl_sft_model",
+        prep_sft_model="prep_sft_model",
         grpo_model="grpo_model"
     ),
     dataset_size=DatasetSize(
         train_samples=int(_c("TRAIN_SAMPLES", "512")),
-        rl_prep_train_samples=128,
+        prep_train_samples=int(_c("PREP_TRAIN_SAMPLES", "128")),
     ),
     wandb=WanDBConf(
         entity="andresarpi3-universidad-de-san-andr-s",

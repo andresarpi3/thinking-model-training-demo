@@ -91,7 +91,7 @@ def train_grpo_model(model, tokenizer, train_dataset, output_dir, base_model_pat
 def main():
     parser = argparse.ArgumentParser(description="Train GRPO model")
     # Config is now imported directly from config.py
-    parser.add_argument("--base-model", type=str, required=True, help="Base model name (e.g., 'rl_sft_model')")
+    parser.add_argument("--base-model", type=str, required=True, help="Base model name (e.g., 'prep_sft_model')")
     parser.add_argument("--eval", type=bool, default=True, help="Wether to run eval at the end of the training")
 
     args = parser.parse_args()
@@ -105,7 +105,7 @@ def main():
     # Map base model names to their full paths
     base_model_map = {
         'sft_model': config.outputs.get_sft_model_path(),
-        'rl_sft_model': config.outputs.get_rl_sft_model_path(),
+        'prep_sft_model': config.outputs.get_prep_sft_model_path(),
         'grpo_model': config.outputs.get_grpo_model_path()
     }
     base_model_path = base_model_map[args.base_model]
