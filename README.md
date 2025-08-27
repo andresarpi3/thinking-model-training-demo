@@ -61,33 +61,45 @@ uv run src/evaluate_model.py  --output-file base_model_eval.csv
 ```
 
 ### Step 2: Train SFT Model (Full)
+Training automatically evaluates the model after completion.
 ```bash
 uv run src/train_sft.py  --stage full
 ```
 
-### Step 3: Evaluate SFT Model
-```bash
-uv run src/evaluate_model.py --model-path sft_model --output-file sft_model_eval.csv
-```
-
-### Step 4: Train RL Preparation Model (SFT with fewer samples)
+### Step 3: Train RL Preparation Model (SFT with fewer samples)
+Training automatically evaluates the model after completion.
 ```bash
 uv run src/train_sft.py  --stage rl_prep
 ```
 
-### Step 5: Evaluate RL-SFT Model
-```bash
-uv run src/evaluate_model.py  --model-path rl_sft_model --output-file rl_sft_eval.csv
-```
-
-### Step 6: Train GRPO Model
+### Step 4: Train GRPO Model
+Training automatically evaluates the model after completion.
 ```bash
 uv run src/train_grpo.py  --base-model rl_sft_model
 ```
 
-### Step 7: Evaluate GRPO Model
+## Standalone Evaluation
+
+To evaluate any model without training:
+
+### Base Model
 ```bash
-uv run src/evaluate_model.py  --model-path grpo_model --output-file grpo_model_eval.csv
+uv run src/evaluate_model.py --output-file base_model_eval.csv
+```
+
+### SFT Model
+```bash
+uv run src/evaluate_model.py --model-path sft_model --output-file sft_model_eval.csv
+```
+
+### RL-SFT Model
+```bash
+uv run src/evaluate_model.py --model-path rl_sft_model --output-file rl_sft_eval.csv
+```
+
+### GRPO Model
+```bash
+uv run src/evaluate_model.py --model-path grpo_model --output-file grpo_model_eval.csv
 ```
 
 ## Output Format
