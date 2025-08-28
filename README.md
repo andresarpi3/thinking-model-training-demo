@@ -1,57 +1,15 @@
 # GSM8K Training Pipeline
 
-This project implements a complete training pipeline for GSM8K mathematical reasoning using Supervised Fine-Tuning (SFT) followed by Group Relative Policy Optimization (GRPO).
-
-## Project Structure
-
-```
-├── config.json                 # Configuration file
-├── requirements.txt            # Dependencies
-├── README.md                   # This file
-├── src/
-│   ├── model_utils.py         # Model loading and setup utilities
-│   ├── dataset_utils.py       # Dataset preparation and text extraction
-│   ├── reward_functions.py    # Reward functions for GRPO training
-│   ├── evaluate_model.py      # Model evaluation script
-│   ├── train_sft.py          # Supervised fine-tuning script
-│   └── train_grpo.py         # GRPO reinforcement learning script
-└── outputs/
-    ├── models/               # Trained model checkpoints
-    │   ├── prep_sft_model/   # Preparation SFT model (trained on smaller dataset)
-    │   ├── sft_model/        # Full SFT model (trained on larger dataset)
-    │   └── grpo_model/       # GRPO model (trained with reinforcement learning)
-    └── debug/               # Evaluation results and debug info
-        └── *.csv           # Evaluation CSV files
-```
-
-## Command Line Arguments
-
-The scripts use minimal command line arguments, with most configuration handled via `config.json`:
-
-- `--config`: Path to configuration file (required for all scripts)
-- `--model-path`: Model name from config (e.g., `sft_model`, `grpo_model`) or None for base model (evaluate_model.py)
-- `--base-model`: Base model name from config for GRPO training (train_grpo.py) and optionally for full SFT training (train_sft.py)
-- `--stage`: Training stage - `full` or `prep` (train_sft.py)
-- `--output-file`: Output CSV filename for evaluation results
-
-Model paths are automatically resolved from the config file, so you reference models by name rather than full paths.
+This project implements a compares results on GSM8K mathematical reasoning of Supervised Fine-Tuning (SFT) vs Group Relative Policy Optimization (GRPO).
 
 ## Setup
 
-After restarting a pod, install uv:
+Install uv:
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
 source ~/.bashrc
+uv sync
 ```
-
-## Configuration
-
-Edit `config.json` to adjust:
-- Model settings (name, sequence length, LoRA parameters)
-- Training hyperparameters (learning rates, batch sizes, epochs)
-- Evaluation settings (number of samples, generation parameters)
-- Output directories
-- Prompt templates and special tokens
 
 ## Full Training Pipeline
 
@@ -126,16 +84,10 @@ Results are saved as CSV files in `outputs/debug/` with detailed per-example ana
 
 ## File Descriptions
 
-- `config.json`: Central configuration for all parameters
+- `src/tr_config.py`: Central configuration for all parameters
 - `src/model_utils.py`: Model loading, LoRA setup, and memory management
 - `src/dataset_utils.py`: GSM8K data loading and formatting for training
 - `src/reward_functions.py`: Reward functions that score format adherence and answer correctness
 - `src/train_sft.py`: Supervised fine-tuning with configurable sample sizes
 - `src/train_grpo.py`: GRPO training with multiple reward functions
 - `src/evaluate_model.py`: Batch evaluation with detailed result logging
-
-
-export  OUTPUT_DIR="outputs/short-run" \
-        EVAL_SAMPLES=128 \
-        TRAIN_SAMPLES=256 
-uv run src/evaluate_model.py --output-file base_model_eval.csv
