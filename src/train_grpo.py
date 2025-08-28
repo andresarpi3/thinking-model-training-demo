@@ -129,7 +129,7 @@ def main():
         extra_config={
             "base_model_path": base_model_path,
         },
-        tags = [f"{n_samples}_num_samples"],
+        tags = [f"{n_samples}_num_samples", f"{config.training.grpo.num_generations} generations"],
     ) as run:
         trained_model = train_grpo_model(model, tokenizer, grpo_dataset, output_dir, base_model_path)
         

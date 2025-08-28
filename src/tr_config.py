@@ -73,6 +73,7 @@ class OutputDirectories(BaseModel):
     sft_model: str = Field(description="SFT model subdirectory name")
     prep_sft_model: str = Field(description="Preparation SFT model subdirectory name")
     grpo_model: str = Field(description="GRPO model subdirectory name")
+    output_prefix: str | None = Field(description="Prefix to add to the model output directory and output debug files")
     
     def get_models_path(self) -> str:
         """Get full path to models directory."""
@@ -161,7 +162,8 @@ config = Config(
         debug_dir="debug",
         sft_model="sft_model",
         prep_sft_model="prep_sft_model",
-        grpo_model="grpo_model"
+        grpo_model="grpo_model",
+        output_prefix=_c("", ""),
     ),
     dataset_size=DatasetSize(
         train_samples=int(_c("TRAIN_SAMPLES", "512")),
