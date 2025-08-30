@@ -91,7 +91,12 @@ def train_grpo_model(model, tokenizer, train_dataset, output_dir, base_model_pat
 def main():
     parser = argparse.ArgumentParser(description="Train GRPO model")
     # Config is now imported directly from config.py
-    parser.add_argument("--base-model", type=str, required=True, help="Base model name (e.g., 'prep_sft_model')")
+    parser.add_argument("--base-model", type=str, required=False, help="Base model name (e.g., 'prep_sft_model')")
+    parser.add_argument("--override-base-model-dir", type=str, required=False, default = "", help="Path to the saved model to load. Will override --base-model")
+    
+    # add a arg that it's a list of strs. by default it should be empty
+    parser.add_argument("--additional-tags", type=str, nargs='*', default=[], help="Additional tags for the wandb")
+
     parser.add_argument("--eval", type=bool, default=True, help="Wether to run eval at the end of the training")
 
     args = parser.parse_args()
@@ -108,13 +113,19 @@ def main():
         'prep_sft_model': config.outputs.get_prep_sft_model_path(),
         'grpo_model': config.outputs.get_grpo_model_path()
     }
-    base_model_path = base_model_map[args.base_model]
+    if args.override_base_model_dir:
+        base_model_path = args.override_base_model_dir
+        print(f"Base model path overriden to {base_model_path}")
+    elif args.base_model:
+        base_model_path = base_model_map[args.base_model]  
+        print(f"Base model: {args.base_model} -> {base_model_path}")
+    else:
+        raise RuntimeError("override_base_model_dir or base_model must be set...")
     
     output_dir = config.outputs.get_grpo_model_path()
     n_samples = config.dataset_size.train_samples
     
     print(f"Training GRPO model with {n_samples} samples")
-    print(f"Base model: {args.base_model} -> {base_model_path}")
     
     # Load model and datasets
     model, tokenizer = load_model(base_model_path)
@@ -129,7 +140,7 @@ def main():
         extra_config={
             "base_model_path": base_model_path,
         },
-        tags = [f"{n_samples}_num_samples"],
+        tags = [f"{n_samples}_num_samples"] + args.additional_tags,
     ) as run:
         trained_model = train_grpo_model(model, tokenizer, grpo_dataset, output_dir, base_model_path)
         

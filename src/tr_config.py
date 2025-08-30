@@ -133,7 +133,7 @@ config = Config(
         ),
         grpo=GRPOHyperparameters(
             learning_rate=5e-6,
-            batch_size=8,
+            batch_size=int(_c("GRPO_BATCH_SIZE", "8")),
             gradient_accumulation_steps=1,
             # max_steps=-1,
             num_epochs=2,
@@ -161,7 +161,7 @@ config = Config(
         debug_dir="debug",
         sft_model="sft_model",
         prep_sft_model="prep_sft_model",
-        grpo_model="grpo_model"
+        grpo_model="grpo_model",
     ),
     dataset_size=DatasetSize(
         train_samples=int(_c("TRAIN_SAMPLES", "512")),
