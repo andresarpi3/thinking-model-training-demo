@@ -137,14 +137,18 @@ def evaluate_model(model, tokenizer, lora_adapter, eval_dataset: Dataset):
     return EvalResults(df=pd.DataFrame(results), accuracy=accuracy, thinking_proportion=thinking_prop, answer_proportion=answer_prop)
 
 
-def save_outputs_from_eval(output_file: str, results: EvalResults, run: Run | None = None):
-    os.makedirs(config.outputs.get_debug_path(), exist_ok=True)
+def save_outputs_from_eval(output_file: str, results: EvalResults, run: Run | None = None, debug_dir: str | None = None):
+    # Use provided debug_dir or default to 'debug'
+    if debug_dir is None:
+        debug_dir = "debug"
+    
+    os.makedirs(debug_dir, exist_ok=True)
 
-    output_path = os.path.join(config.outputs.get_debug_path(), output_file)
+    output_path = os.path.join(debug_dir, output_file)
     results.df.to_csv(output_path, index=False)
     print(f"Results saved to {output_path}")
 
-    with open(os.path.join(config.outputs.get_debug_path(), output_file.replace(".csv", "_metrics.txt")), "w") as f:
+    with open(os.path.join(debug_dir, output_file.replace(".csv", "_metrics.txt")), "w") as f:
         f.write(f"Accuracy: {results.accuracy:.3f}\n")
         f.write(f"Proportion with thinking: {results.thinking_proportion:.3f}\n")
         f.write(f"Proportion with extracted answer: {results.answer_proportion:.3f}\n")
@@ -156,24 +160,19 @@ def save_outputs_from_eval(output_file: str, results: EvalResults, run: Run | No
 
 def main():
     parser = argparse.ArgumentParser(description="Evaluate model on GSM8K")
-    # Config is now imported directly from config.py
-    parser.add_argument("--model-path", type=str, help="Model name (e.g., 'prep_sft_model', 'sft_model', 'grpo_model') or None for base model")
+    parser.add_argument("--model-path", type=str, help="Model output directory path (e.g., 'outputs/prep_sft') or None for base model")
+    parser.add_argument("--output-dir", type=str, default=".", help="Output directory for results (default: current directory)")
     parser.add_argument("--output-file", type=str, required=True, help="Output CSV file")
     
     args = parser.parse_args()
     
     
-    # Resolve model path from config
+    # Resolve model path
     model_path = None
     if args.model_path:
-        # Map model names to their full paths
-        model_path_map = {
-            'prep_sft_model': config.outputs.get_prep_sft_model_path(),
-            'sft_model': config.outputs.get_sft_model_path(),
-            'grpo_model': config.outputs.get_grpo_model_path()
-        }
-        model_path = model_path_map[args.model_path]
-        print(f"Using model: {args.model_path} -> {model_path}")
+        # Look for model in provided directory/model subdirectory
+        model_path = os.path.join(args.model_path, "model")
+        print(f"Using model: {model_path}")
     else:
         print("Evaluating base model")
     
@@ -189,8 +188,9 @@ def main():
         model, tokenizer, lora_adapter, eval_dataset
     )
     
-    # Save results
-    save_outputs_from_eval(args.output_file, results)
+    # Save results to specified output directory
+    debug_dir = os.path.join(args.output_dir, "debug")
+    save_outputs_from_eval(args.output_file, results, debug_dir=debug_dir)
 
 
 

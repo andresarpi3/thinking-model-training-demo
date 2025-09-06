@@ -65,35 +65,6 @@ class PromptTemplates(BaseModel):
     solution_end: str = Field(description="Token to mark end of solution")
 
 
-class OutputDirectories(BaseModel):
-    """Output directories configuration."""
-    base_dir: str = Field(description="Base directory for outputs")
-    models_dir: str = Field(description="Directory for saved models (relative to base_dir)")
-    debug_dir: str = Field(description="Directory for debug outputs (relative to base_dir)")
-    sft_model: str = Field(description="SFT model subdirectory name")
-    prep_sft_model: str = Field(description="Preparation SFT model subdirectory name")
-    grpo_model: str = Field(description="GRPO model subdirectory name")
-    
-    def get_models_path(self) -> str:
-        """Get full path to models directory."""
-        return f"{self.base_dir}/{self.models_dir}"
-    
-    def get_debug_path(self) -> str:
-        """Get full path to debug directory."""
-        return f"{self.base_dir}/{self.debug_dir}"
-    
-    def get_sft_model_path(self) -> str:
-        """Get full path to SFT model."""
-        return f"{self.base_dir}/{self.models_dir}/{self.sft_model}"
-    
-    def get_prep_sft_model_path(self) -> str:
-        """Get full path to prep SFT model."""
-        return f"{self.base_dir}/{self.models_dir}/{self.prep_sft_model}"
-    
-    def get_grpo_model_path(self) -> str:
-        """Get full path to GRPO model."""
-        return f"{self.base_dir}/{self.models_dir}/{self.grpo_model}"
-    
 class WanDBConf(BaseModel):
     entity: str
     log_completions: bool
@@ -111,7 +82,6 @@ class Config(BaseModel):
     training: TrainingHyperparameters
     evaluation: EvaluationSettings
     prompts: PromptTemplates
-    outputs: OutputDirectories
     dataset_size: DatasetSize
     wandb: WanDBConf | None
 
@@ -154,14 +124,6 @@ config = Config(
         reasoning_end="<end_working_out>",
         solution_start="<SOLUTION>",
         solution_end="</SOLUTION>"
-    ),
-    outputs=OutputDirectories(
-        base_dir=_c("OUTPUT_DIR", "outputs"),
-        models_dir="models",
-        debug_dir="debug",
-        sft_model="sft_model",
-        prep_sft_model="prep_sft_model",
-        grpo_model="grpo_model"
     ),
     dataset_size=DatasetSize(
         train_samples=int(_c("TRAIN_SAMPLES", "512")),

@@ -90,31 +90,25 @@ def train_grpo_model(model, tokenizer, train_dataset, output_dir, base_model_pat
 
 def main():
     parser = argparse.ArgumentParser(description="Train GRPO model")
-    # Config is now imported directly from config.py
-    parser.add_argument("--base-model", type=str, required=True, help="Base model name (e.g., 'prep_sft_model')")
-    parser.add_argument("--eval", type=bool, default=True, help="Wether to run eval at the end of the training")
+    parser.add_argument("--output-dir", type=str, required=True, help="Output directory for model and debug files")
+    parser.add_argument("--base-model", type=str, required=True, help="Base model output directory (e.g., path to prep model output)")
+    parser.add_argument("--eval", type=bool, default=True, help="Whether to run eval at the end of the training")
 
     args = parser.parse_args()
     
-    # Config is imported directly from config.py
-    
     # Create output directories
-    os.makedirs(config.outputs.get_models_path(), exist_ok=True)
+    model_dir = os.path.join(args.output_dir, "model")
+    debug_dir = os.path.join(args.output_dir, "debug")
+    os.makedirs(model_dir, exist_ok=True)
+    os.makedirs(debug_dir, exist_ok=True)
     
-    # Resolve base model path from config
-    # Map base model names to their full paths
-    base_model_map = {
-        'sft_model': config.outputs.get_sft_model_path(),
-        'prep_sft_model': config.outputs.get_prep_sft_model_path(),
-        'grpo_model': config.outputs.get_grpo_model_path()
-    }
-    base_model_path = base_model_map[args.base_model]
-    
-    output_dir = config.outputs.get_grpo_model_path()
+    # Base model path - look for model in base-model/model directory
+    base_model_path = os.path.join(args.base_model, "model")
     n_samples = config.dataset_size.train_samples
     
     print(f"Training GRPO model with {n_samples} samples")
-    print(f"Base model: {args.base_model} -> {base_model_path}")
+    print(f"Output directory: {args.output_dir}")
+    print(f"Base model: {base_model_path}")
     
     # Load model and datasets
     model, tokenizer = load_model(base_model_path)
@@ -131,10 +125,10 @@ def main():
         },
         tags = [f"{n_samples}_num_samples"],
     ) as run:
-        trained_model = train_grpo_model(model, tokenizer, grpo_dataset, output_dir, base_model_path)
+        trained_model = train_grpo_model(model, tokenizer, grpo_dataset, model_dir, base_model_path)
         
         if run: 
-            run.summary["output_dir"] = output_dir
+            run.summary["output_dir"] = args.output_dir
             run.summary["num_samples_train"] = n_samples
             run_id = run.id
         else:
@@ -142,14 +136,14 @@ def main():
 
         
         if args.eval:
-            lora_adapter = trained_model.load_lora(output_dir)
+            lora_adapter = trained_model.load_lora(model_dir)
             eval_dataset = prepare_sft_dataset(config.evaluation.num_samples, tokenizer, train=False)
             results = evaluate_model(trained_model, tokenizer, lora_adapter, eval_dataset)
             output_file = f"grpo_{run_id or ''}.csv"
-            save_outputs_from_eval(output_file, results, run = run)
+            save_outputs_from_eval(output_file, results, run=run, debug_dir=debug_dir)
 
     
-    print(f"GRPO training complete! Model saved to {output_dir}")
+    print(f"GRPO training complete! Model saved to {model_dir}")
 
 
 if __name__ == "__main__":

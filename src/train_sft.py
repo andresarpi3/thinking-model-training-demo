@@ -49,36 +49,34 @@ def train_sft_model(model, tokenizer, train_dataset, output_dir):
 
 def main():
     parser = argparse.ArgumentParser(description="Train SFT model")
-    # Config is now imported directly from config.py
+    parser.add_argument("--output-dir", type=str, required=True, help="Output directory for model and debug files")
     parser.add_argument("--stage", type=str, choices=["full", "prep"], required=True, 
                        help="Training stage: 'full' for full SFT, 'prep' for preparation SFT")
-    parser.add_argument("--base-model", type=str, help="Base model name (e.g., 'prep_sft_model') for full stage")
-    parser.add_argument("--eval", type=bool, default=True, help="Wether to run eval at the end of the training")
+    parser.add_argument("--base-model", type=str, help="Base model output directory (e.g., path to prep model output)")
+    parser.add_argument("--eval", type=bool, default=True, help="Whether to run eval at the end of the training")
 
     args = parser.parse_args()
     
     # Create output directories
-    os.makedirs(config.outputs.get_models_path(), exist_ok=True)
+    model_dir = os.path.join(args.output_dir, "model")
+    debug_dir = os.path.join(args.output_dir, "debug")
+    os.makedirs(model_dir, exist_ok=True)
+    os.makedirs(debug_dir, exist_ok=True)
     
-    # Determine number of samples, output directory, and base model based on stage
+    # Determine number of samples and base model based on stage
     if args.stage == "full":
         n_samples = config.dataset_size.train_samples
-        output_dir = config.outputs.get_sft_model_path()
-        # For full stage, use prep model as base if specified
-        if args.base_model:
-            base_model_map = {
-                'prep_sft_model': config.outputs.get_prep_sft_model_path(),
-            }
-            base_model_path = base_model_map[args.base_model]
-        else:
-            base_model_path = None
     else:  # prep
         n_samples = config.dataset_size.prep_train_samples
-        output_dir = config.outputs.get_prep_sft_model_path()
-        base_model_path = None  # prep stage always starts from base model
+    
+    # Base model path - if provided, look for model in base-model/model directory
+    base_model_path = None
+    if args.base_model:
+        base_model_path = os.path.join(args.base_model, "model")
     
     print(f"Training {args.stage} SFT model with {n_samples} samples")
-    print(f"Base model: {args.base_model} -> {base_model_path}")
+    print(f"Output directory: {args.output_dir}")
+    print(f"Base model: {base_model_path if base_model_path else 'base model'}")
 
     # Load model and datasets
     model, tokenizer = load_model(lora_path=base_model_path)
@@ -93,23 +91,23 @@ def main():
         group='sft_training', 
         tags = [f"sft_{args.stage}", f"{n_samples}_num_samples"],
     ) as run:
-        trained_model = train_sft_model(model, tokenizer, sft_dataset, output_dir)
+        trained_model = train_sft_model(model, tokenizer, sft_dataset, model_dir)
         run_id = run.id if run else None
         
         if run: 
             run.summary["stage"] = args.stage
-            run.summary["output_dir"] = output_dir
+            run.summary["output_dir"] = args.output_dir
             run.summary["num_samples_train"] = n_samples
 
         
         if args.eval:
-            lora_adapter = trained_model.load_lora(output_dir)
+            lora_adapter = trained_model.load_lora(model_dir)
             eval_dataset = prepare_sft_dataset(config.evaluation.num_samples, tokenizer, train=False)
             results = evaluate_model(trained_model, tokenizer, lora_adapter, eval_dataset)
             output_file = f"{args.stage}_sft_{run_id or ''}.csv"
-            save_outputs_from_eval(output_file, results, run = run)
+            save_outputs_from_eval(output_file, results, run=run, debug_dir=debug_dir)
 
-    print(f"Training complete! Model saved to {output_dir}")
+    print(f"Training complete! Model saved to {model_dir}")
 
 
 if __name__ == "__main__":
