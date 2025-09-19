@@ -54,6 +54,7 @@ class EvaluationSettings(BaseModel):
     batch_size: int = Field(description="Batch size for evaluation")
     temperature: float = Field(description="Temperature for generation")
     top_k: int = Field(description="Top-k for generation")
+    confidence_bins: int = Field(description="Number of bins for confidence calibration analysis")
 
 
 class PromptTemplates(BaseModel):
@@ -63,6 +64,8 @@ class PromptTemplates(BaseModel):
     reasoning_end: str = Field(description="Token to mark end of reasoning")
     solution_start: str = Field(description="Token to mark start of solution")
     solution_end: str = Field(description="Token to mark end of solution")
+    confidence_start: str = Field(description="Token to mark start of confidence")
+    confidence_end: str = Field(description="Token to mark end of confidence")
 
 
 class WanDBConf(BaseModel):
@@ -106,7 +109,7 @@ config = Config(
             batch_size=8,
             gradient_accumulation_steps=1,
             # max_steps=-1,
-            num_epochs=2,
+            num_epochs=int(_c("NUM_EPOCHS", "2")),
             num_generations=int(_c("NUM_GENERATIONS", "8")),
             weight_decay=0.01,
             warmup_ratio=0.1
@@ -117,13 +120,16 @@ config = Config(
         batch_size=32,
         temperature=0.7,
         top_k=50,
+        confidence_bins=10,
     ),
     prompts=PromptTemplates(
         system_prompt="You are given a problem.\nThink about the problem and provide your working out.\nPlace it between <start_working_out> and <end_working_out>.\nThen, provide your solution between <SOLUTION></SOLUTION>",
         reasoning_start="<start_working_out>",
         reasoning_end="<end_working_out>",
         solution_start="<SOLUTION>",
-        solution_end="</SOLUTION>"
+        solution_end="</SOLUTION>",
+        confidence_start="<confidence>",
+        confidence_end="</confidence>"
     ),
     dataset_size=DatasetSize(
         train_samples=int(_c("TRAIN_SAMPLES", "512")),

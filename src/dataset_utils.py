@@ -2,6 +2,7 @@
 """Dataset utilities for GSM8K data preparation."""
 
 import re
+import numpy as np
 from datasets import Dataset, load_dataset
 from tr_config import config
 
@@ -27,7 +28,25 @@ def extract_solution(text, solution_start, solution_end):
     return match.group(1).strip() if match else None
 
 
-def prepare_sft_dataset(n_samples, tokenizer, train: bool = True):
+def extract_confidence(text, confidence_start, confidence_end):
+    """Extract confidence between confidence tokens"""
+    pattern = rf"{re.escape(confidence_start)}(.*?){re.escape(confidence_end)}"
+    match = re.search(pattern, text, re.DOTALL)
+    if match:
+        try:
+            return float(match.group(1).strip())
+        except ValueError:
+            return None
+    return None
+
+
+def generate_random_confidence():
+    """Generate random confidence from normal distribution N(0.7, 0.2) clipped to [0.0, 1.0]"""
+    confidence = np.random.normal(0.7, 0.2)
+    return np.clip(confidence, 0.0, 1.0)
+
+
+def prepare_sft_dataset(n_samples, tokenizer, train: bool = True, use_confidence: bool = False):
     """Prepare dataset for SFT training"""
     print(f"Preparing SFT dataset with {n_samples} samples...")
 
@@ -35,11 +54,19 @@ def prepare_sft_dataset(n_samples, tokenizer, train: bool = True):
     assert isinstance(dataset, Dataset)
     
     prompts = config.prompts
-    system_prompt = prompts.system_prompt
+    
+    # Update system prompt based on confidence mode
+    if use_confidence:
+        system_prompt = prompts.system_prompt + f"\nAfter your solution, provide your confidence (0.0 to 1.0) in {prompts.confidence_start}{prompts.confidence_end} tags."
+    else:
+        system_prompt = prompts.system_prompt
+    
     reasoning_start = prompts.reasoning_start
     reasoning_end = prompts.reasoning_end
     solution_start = prompts.solution_start
     solution_end = prompts.solution_end
+    confidence_start = prompts.confidence_start
+    confidence_end = prompts.confidence_end
 
     # Take subset
     train_data = dataset.select(range(min(n_samples, len(dataset))))
@@ -64,7 +91,12 @@ def prepare_sft_dataset(n_samples, tokenizer, train: bool = True):
         # Use the step-by-step solution as thinking
         thinking = answer_text.split("####")[0].strip()
 
+
         response = f"{reasoning_start}well...{thinking}{reasoning_end}{solution_start}{numerical_answer}{solution_end}"
+        
+        if use_confidence:
+            confidence_value = generate_random_confidence()
+            response += f"{confidence_start}{confidence_value:.2f}{confidence_end}"
 
         return {
             "messages": [
@@ -103,14 +135,21 @@ def prepare_sft_dataset(n_samples, tokenizer, train: bool = True):
     return Dataset.from_dict(dataset_dict)
 
 
-def prepare_grpo_dataset(desired_size):
+def prepare_grpo_dataset(desired_size, use_confidence: bool = False):
     """Prepare dataset for GRPO training"""
     print(f"Preparing GRPO dataset with {desired_size} samples...")
     
     dataset = load_dataset("openai/gsm8k", "main", split="train")
     assert isinstance(dataset, Dataset)
     
-    system_prompt = config.prompts.system_prompt
+    prompts = config.prompts
+    
+    # Update system prompt based on confidence mode
+    if use_confidence:
+        system_prompt = prompts.system_prompt + f"\nAfter your solution, provide your confidence (0.0 to 1.0) in {prompts.confidence_start}{prompts.confidence_end} tags."
+    else:
+        system_prompt = prompts.system_prompt
+    
     train_data = dataset.select(range(min(desired_size, len(dataset))))
 
     def format_for_grpo(example):

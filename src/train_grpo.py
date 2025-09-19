@@ -16,7 +16,7 @@ from reward_functions import create_reward_functions
 from wandb_utils import wandb_run
 
 
-def train_grpo_model(model, tokenizer, train_dataset, output_dir, base_model_path):
+def train_grpo_model(model, tokenizer, train_dataset, output_dir, base_model_path, use_confidence: bool = False):
     """Train model using GRPO"""
     print("Starting GRPO training...")
     
@@ -45,6 +45,9 @@ def train_grpo_model(model, tokenizer, train_dataset, output_dir, base_model_pat
         include_stop_str_in_output=True,
     )
 
+    # Create reward functions
+    reward_funcs, reward_weights = create_reward_functions(use_confidence=use_confidence)
+
     training_args = GRPOConfig(
         vllm_sampling_params=vllm_sampling_params, # type: ignore
         temperature=1.0,
@@ -63,15 +66,14 @@ def train_grpo_model(model, tokenizer, train_dataset, output_dir, base_model_pat
         num_train_epochs=grpo_config.num_epochs,
         save_steps=100,
         report_to="wandb" if config.wandb else None,
-        log_completions=config.wandb.log_completions if config.wandb else False,
+        log_completions=False, #config.wandb.log_completions if config.wandb else False,
         wandb_log_unique_prompts=config.wandb.unique if config.wandb else False,
         output_dir=output_dir,
         use_vllm=True,
         vllm_mode="colocate",
+        reward_weights=reward_weights
     )
 
-    # Create reward functions
-    reward_funcs = create_reward_functions()
 
     trainer = GRPOTrainer(
         model=model,
@@ -93,6 +95,7 @@ def main():
     parser.add_argument("--output-dir", type=str, required=True, help="Output directory for model and debug files")
     parser.add_argument("--base-model", type=str, required=True, help="Base model output directory (e.g., path to prep model output)")
     parser.add_argument("--eval", type=bool, default=True, help="Whether to run eval at the end of the training")
+    parser.add_argument("--use-confidence", action="store_true", help="Enable confidence training mode")
 
     args = parser.parse_args()
     
@@ -113,7 +116,7 @@ def main():
     # Load model and datasets
     model, tokenizer = load_model(base_model_path)
     
-    grpo_dataset = prepare_grpo_dataset(n_samples)
+    grpo_dataset = prepare_grpo_dataset(n_samples, use_confidence=args.use_confidence)
     print(f"GRPO dataset size: {len(grpo_dataset)}")
     
     # Train model
@@ -125,7 +128,7 @@ def main():
         },
         tags = [f"{n_samples}_num_samples"],
     ) as run:
-        trained_model = train_grpo_model(model, tokenizer, grpo_dataset, model_dir, base_model_path)
+        trained_model = train_grpo_model(model, tokenizer, grpo_dataset, model_dir, base_model_path, use_confidence=args.use_confidence)
         
         if run: 
             run.summary["output_dir"] = args.output_dir
@@ -137,8 +140,8 @@ def main():
         
         if args.eval:
             lora_adapter = trained_model.load_lora(model_dir)
-            eval_dataset = prepare_sft_dataset(config.evaluation.num_samples, tokenizer, train=False)
-            results = evaluate_model(trained_model, tokenizer, lora_adapter, eval_dataset)
+            eval_dataset = prepare_sft_dataset(config.evaluation.num_samples, tokenizer, train=False, use_confidence=args.use_confidence)
+            results = evaluate_model(trained_model, tokenizer, lora_adapter, eval_dataset, use_confidence=args.use_confidence)
             output_file = f"grpo_{run_id or ''}.csv"
             save_outputs_from_eval(output_file, results, run=run, debug_dir=debug_dir)
 

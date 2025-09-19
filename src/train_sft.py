@@ -54,6 +54,7 @@ def main():
                        help="Training stage: 'full' for full SFT, 'prep' for preparation SFT")
     parser.add_argument("--base-model", type=str, help="Base model output directory (e.g., path to prep model output)")
     parser.add_argument("--eval", type=bool, default=True, help="Whether to run eval at the end of the training")
+    parser.add_argument("--use-confidence", action="store_true", help="Enable confidence training mode")
 
     args = parser.parse_args()
     
@@ -82,7 +83,7 @@ def main():
     model, tokenizer = load_model(lora_path=base_model_path)
     
     # Prepare SFT dataset
-    sft_dataset = prepare_sft_dataset(n_samples, tokenizer)
+    sft_dataset = prepare_sft_dataset(n_samples, tokenizer, use_confidence=args.use_confidence)
     print(f"SFT dataset size: {len(sft_dataset)}")
     
     # Train model
@@ -102,8 +103,8 @@ def main():
         
         if args.eval:
             lora_adapter = trained_model.load_lora(model_dir)
-            eval_dataset = prepare_sft_dataset(config.evaluation.num_samples, tokenizer, train=False)
-            results = evaluate_model(trained_model, tokenizer, lora_adapter, eval_dataset)
+            eval_dataset = prepare_sft_dataset(config.evaluation.num_samples, tokenizer, train=False, use_confidence=args.use_confidence)
+            results = evaluate_model(trained_model, tokenizer, lora_adapter, eval_dataset, use_confidence=args.use_confidence)
             output_file = f"{args.stage}_sft_{run_id or ''}.csv"
             save_outputs_from_eval(output_file, results, run=run, debug_dir=debug_dir)
 

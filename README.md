@@ -60,11 +60,65 @@ uv run src/evaluate_model.py --model-path outputs/full_sft --output-dir outputs/
 uv run src/evaluate_model.py --model-path outputs/grpo --output-dir outputs/grpo_eval --output-file grpo_eval.csv
 ```
 
+## Confidence Training Pipeline
+
+To train models that output calibrated confidence scores, add the `--use-confidence` flag to training and evaluation commands.
+
+### Step 1: Evaluate Base Model with Confidence
+```bash
+uv run src/evaluate_model.py --output-dir outputs/base_eval_conf --output-file base_model_eval_conf.csv --use-confidence
+```
+
+### Step 2: Train Preparation SFT Model with Confidence
+```bash
+uv run src/train_sft.py --output-dir outputs/prep_sft_conf --stage prep --use-confidence
+```
+
+### Step 3: Train Full SFT Model with Confidence
+```bash
+uv run src/train_sft.py --output-dir outputs/full_sft_conf --stage full --base-model outputs/prep_sft_conf --use-confidence
+```
+
+### Step 4: Train GRPO Model with Confidence
+```bash
+uv run src/train_grpo.py --output-dir outputs/grpo_conf --base-model outputs/prep_sft_conf --use-confidence
+```
+
+### Confidence-Only Evaluation
+```bash
+uv run src/evaluate_model.py --model-path outputs/grpo_conf --output-dir outputs/grpo_conf_eval --output-file grpo_conf_eval.csv --use-confidence
+```
+
+### Understanding Confidence Calibration
+
+The GRPO training includes a confidence calibration reward function that:
+- Rewards higher confidence for correct answers
+- Rewards lower confidence for incorrect answers
+- Penalizes missing confidence scores
+
+The goal is to achieve **calibrated predictions** where:
+- Predictions with 70% confidence are correct ~70% of the time
+- Predictions with 90% confidence are correct ~90% of the time
+- Low Expected Calibration Error (ECE) indicates good calibration
+
 ## Output Format
 
 The model uses special tokens to structure its reasoning:
 - `<start_working_out>` ... `<end_working_out>`: Contains step-by-step reasoning
 - `<SOLUTION>` ... `</SOLUTION>`: Contains the final numerical answer
+
+### Confidence Mode (Optional)
+When using the `--use-confidence` flag, the model also outputs:
+- `<confidence>` ... `</confidence>`: Contains confidence score between 0.0 and 1.0
+
+Example output with confidence:
+```
+<start_working_out>
+Let me solve this step by step...
+<end_working_out>
+<SOLUTION>42</SOLUTION>
+<confidence>0.85</confidence>
+```
 
 ## Evaluation Metrics
 
@@ -73,7 +127,12 @@ Each evaluation produces:
 - **Thinking Proportion**: Percentage of responses containing reasoning
 - **Answer Proportion**: Percentage of responses with extractable final answers
 
-Results are saved as CSV files in `[output-dir]/debug/` with detailed per-example analysis.
+### Additional Confidence Metrics (when using `--use-confidence`)
+- **Confidence Proportion**: Percentage of responses with extractable confidence scores
+- **Expected Calibration Error (ECE)**: Measures how well confidence aligns with actual accuracy
+- **Confidence-Accuracy Correlation**: Correlation between confidence scores and correctness
+
+Results are saved as CSV files in `[output-dir]/debug/` with detailed per-example analysis. Confidence mode also generates calibration analysis in `*_calibration.csv` files.
 
 ## Training Stages
 
