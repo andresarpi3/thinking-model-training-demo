@@ -60,6 +60,55 @@ uv run src/evaluate_model.py --model-path outputs/full_sft --output-dir outputs/
 uv run src/evaluate_model.py --model-path outputs/grpo --output-dir outputs/grpo_eval --output-file grpo_eval.csv
 ```
 
+## Generate GRPO Reasoning Traces
+
+Use the new script `src/generate_traces.py` to create a dataset of reasoning traces where each example uses the first correct GRPO-generated trace (or falls back to the original GSM8K solution if none of the attempts are correct).
+
+Example:
+
+```bash
+uv run src/generate_traces.py \
+  --grpo-model outputs/compare-train-samples/1024/grpo \
+  --output-dir outputs/traces \
+  --output-file grpo_traces_train.jsonl \
+  --dataset-split train \
+  --num-samples 2048 \
+  --batch-size 32 \
+  --max-attempts 5 \
+  --temperature 0.8
+```
+
+Outputs:
+- JSONL dataset: `outputs/compare-train-samples/512/grpo_traces_train.jsonl`
+- Stats JSON: `.../grpo_traces_train.jsonl.stats.json`
+
+Stats fields:
+- `total_samples`
+- `grpo_successes`
+- `fallback_count`
+- `success_rate`
+- `avg_attempts_for_successes`
+- `avg_attempts_overall`
+
+You can then train an SFT model on the generated traces by pointing your existing SFT training script to this JSONL (adapt loader if needed) and compare against original traces.
+
+## Train SFT with Generated Traces
+
+You can train using the generated reasoning traces JSONL instead of the original GSM8K answers:
+
+```bash
+uv run src/train_sft.py \
+  --output-dir outputs/sft_from_grpo \
+  --stage full \
+  --traces-file outputs/traces/grpo_traces_train.jsonl
+```
+
+The JSONL must contain lines with:
+```json
+{"question": "...", "answer": "<reasoning>\n\n#### 42"}
+```
+The loader will build chat messages using your configured prompt tokens.
+
 ## Output Format
 
 The model uses special tokens to structure its reasoning:

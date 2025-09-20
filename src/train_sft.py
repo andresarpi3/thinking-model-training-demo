@@ -54,6 +54,7 @@ def main():
                        help="Training stage: 'full' for full SFT, 'prep' for preparation SFT")
     parser.add_argument("--base-model", type=str, help="Base model output directory (e.g., path to prep model output)")
     parser.add_argument("--eval", type=bool, default=True, help="Whether to run eval at the end of the training")
+    parser.add_argument("--traces-file", type=str, default=None, help="Optional JSONL traces file (question+answer) to use instead of original GSM8K")
 
     args = parser.parse_args()
     
@@ -82,7 +83,7 @@ def main():
     model, tokenizer = load_model(lora_path=base_model_path)
     
     # Prepare SFT dataset
-    sft_dataset = prepare_sft_dataset(n_samples, tokenizer)
+    sft_dataset = prepare_sft_dataset(n_samples, tokenizer, train=True, custom_jsonl=args.traces_file)
     print(f"SFT dataset size: {len(sft_dataset)}")
     
     # Train model

@@ -3,6 +3,8 @@
 
 import re
 from datasets import Dataset, load_dataset
+import json
+from pathlib import Path
 from tr_config import config
 
 
@@ -27,12 +29,52 @@ def extract_solution(text, solution_start, solution_end):
     return match.group(1).strip() if match else None
 
 
-def prepare_sft_dataset(n_samples, tokenizer, train: bool = True):
-    """Prepare dataset for SFT training"""
-    print(f"Preparing SFT dataset with {n_samples} samples...")
+def _load_custom_traces(custom_jsonl: str, n_samples: int | None) -> Dataset:
+    """Load custom traces JSONL into a Dataset with fields question, answer.
 
-    dataset = load_dataset("openai/gsm8k", "main", split="train") if train else load_dataset("openai/gsm8k", "main", split="test")
-    assert isinstance(dataset, Dataset)
+    Expects each line to be a JSON object containing at least 'question' and 'answer'.
+    Truncates to n_samples if provided.
+    """
+    path = Path(custom_jsonl)
+    if not path.exists():
+        raise FileNotFoundError(f"Custom traces file not found: {custom_jsonl}")
+    questions_raw: list[str] = []
+    answers_raw: list[str] = []
+    with path.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+            except json.JSONDecodeError as e:
+                raise RuntimeError(f"Invalid JSON line in {custom_jsonl}: {line[:120]}") from e
+            if "question" not in obj or "answer" not in obj:
+                continue
+            questions_raw.append(obj["question"])
+            answers_raw.append(obj["answer"])
+
+    if n_samples is not None:
+        questions_raw = questions_raw[:n_samples]
+        answers_raw = answers_raw[:n_samples]
+
+    dataset_dict = {"question": questions_raw, "answer": answers_raw}
+    return Dataset.from_dict(dataset_dict)
+
+
+def prepare_sft_dataset(n_samples, tokenizer, train: bool = True, custom_jsonl: str | None = None):
+    """Prepare dataset for SFT training.
+
+    If custom_jsonl is provided, it loads from that JSONL instead of the GSM8K split.
+    """
+    source = custom_jsonl if custom_jsonl else ("train" if train else "test")
+    print(f"Preparing SFT dataset with {n_samples} samples (source={source})...")
+
+    if custom_jsonl:
+        dataset = _load_custom_traces(custom_jsonl, n_samples)
+    else:
+        dataset = load_dataset("openai/gsm8k", "main", split="train") if train else load_dataset("openai/gsm8k", "main", split="test")
+        assert isinstance(dataset, Dataset)
     
     prompts = config.prompts
     system_prompt = prompts.system_prompt
