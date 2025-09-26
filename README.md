@@ -154,6 +154,111 @@ Each training run creates the following structure:
 
 ## Usage Notes
 
+# Experiments Repro
+
+## Appendix A. Reproduction Steps for Experiment 1
+
+Environment setup:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+source ~/.bashrc  # adapt if using zsh/fish
+uv sync
+```
+
+Prep formatting stage (teaches delimiter grammar):
+```bash
+uv run src/train_sft.py --stage prep \
+  --output-dir outputs/compare-train-samples/prep_sft
+```
+
+Full SFT vs GRPO at a chosen sample budget (example: 512):
+```bash
+TRAIN_SAMPLES=512 uv run src/train_sft.py \
+  --stage full \
+  --base-model outputs/compare-train-samples/prep_sft \
+  --output-dir outputs/compare-train-samples/512/full_sft
+
+TRAIN_SAMPLES=512 uv run src/train_grpo.py \
+  --base-model outputs/compare-train-samples/prep_sft \
+  --output-dir outputs/compare-train-samples/512/grpo
+```
+
+Repeat for:
+```bash
+for n in 256 512 1024 2048; do
+  TRAIN_SAMPLES=$n uv run src/train_sft.py --stage full \
+    --base-model outputs/compare-train-samples/prep_sft \
+    --output-dir outputs/compare-train-samples/$n/full_sft
+  TRAIN_SAMPLES=$n uv run src/train_grpo.py \
+    --base-model outputs/compare-train-samples/prep_sft \
+    --output-dir outputs/compare-train-samples/$n/grpo
+done
+```
+
+Optional standalone evaluation (auto-run during training):
+```bash
+uv run src/evaluate_model.py \
+  --model-path outputs/compare-train-samples/512/full_sft \
+  --output-dir outputs/compare-train-samples/512/full_sft_eval \
+  --output-file full_sft_eval.csv
+
+uv run src/evaluate_model.py \
+  --model-path outputs/compare-train-samples/512/grpo \
+  --output-dir outputs/compare-train-samples/512/grpo_eval \
+  --output-file grpo_eval.csv
+```
+
+Key adjustable environment variables:
+- TRAIN_SAMPLES / PREP_TRAIN_SAMPLES (dataset slice sizes)
+- EVAL_SAMPLES (evaluation subset size)
+- NUM_GENERATIONS (GRPO: sampled completions per prompt)
+- OUTPUT_DIR (override default path root)
+
+All outputs (adapter weights + metrics CSV + summary text file) land under the specified run directory: `model/` for weights/tokenizer artifacts and `debug/` for per-example records.
+
+---
+## Appendix B. Reproduction Steps for Experiment 2
+
+Generate synthetic traces from a chosen GRPO checkpoint (example uses 1024-sample GRPO run):
+```bash
+uv run src/generate_traces.py \
+  --grpo-model outputs/compare-train-samples/1024/grpo \
+  --output-dir outputs/traces \
+  --output-file grpo_traces_train.jsonl \
+  --dataset-split train \
+  --num-samples 2048 \
+  --batch-size 32 \
+  --max-attempts 5 \
+  --temperature 0.8
+```
+
+Train SFT purely on generated traces (match TRAIN_SAMPLES to intended budget):
+```bash
+TRAIN_SAMPLES=1024 uv run src/train_sft.py \
+  --stage full \
+  --base-model outputs/compare-train-samples/prep_sft \
+  --traces-file outputs/traces/grpo_traces_train.jsonl \
+  --output-dir outputs/traces/1024
+```
+
+Evaluate (if needed beyond auto-run):
+```bash
+uv run src/evaluate_model.py \
+  --model-path outputs/traces/1024 \
+  --output-dir outputs/traces/1024_eval \
+  --output-file traces_sft_eval.csv
+```
+
+Key parameters to adjust:
+- --num-samples (how many original training problems to cover)
+- --max-attempts (sampling attempts per problem before fallback)
+- --temperature (diversity of sampled reasoning)
+- --batch-size (throughput during trace generation)
+- TRAIN_SAMPLES (size of supervised fine-tuning subset)
+
+Trace stats sidecar (JSON) summarizes success rate, fallbacks, and mean attempts-per-success for auditability.
+
+
 - **Output directories**: All scripts now use `--output-dir` to specify where to save files
 - **Base models**: When using a previously trained model as base, pass its output directory to `--base-model`
 - **Model files**: Models are saved in `[output-dir]/model/` and debug files in `[output-dir]/debug/`
